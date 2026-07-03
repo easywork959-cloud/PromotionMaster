@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
   html { scroll-behavior: smooth; }
@@ -37,12 +38,30 @@
       <button id="btnClear" class="hidden px-3 py-2 text-sm font-medium text-slate-600 hover:text-red-600 rounded-lg transition" title="Clear all data">
         Clear
       </button>
-      <button id="btnExportLight" class="hidden px-4 py-2 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition">
-        Export Light
-      </button>
-      <button id="btnExportFull" class="hidden px-4 py-2 text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 rounded-lg transition">
-        Export Full
-      </button>
+      <div id="exportMenuWrap" class="hidden relative">
+        <button id="btnExportMenu" class="px-4 py-2 text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 rounded-lg transition flex items-center gap-2">
+          Export <span class="text-xs">▾</span>
+        </button>
+        <div id="exportMenu" class="hidden absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-50">
+          <button class="export-opt w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition" data-mode="full">
+            <div class="font-medium text-slate-900">Full workbook</div>
+            <div class="text-xs text-slate-500">All data · with SKU detail (~30 MB)</div>
+          </button>
+          <button class="export-opt w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition" data-mode="light">
+            <div class="font-medium text-slate-900">Light workbook</div>
+            <div class="text-xs text-slate-500">All data · no SKU detail (~2 MB)</div>
+          </button>
+          <div class="border-t border-slate-100"></div>
+          <button class="export-opt w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition" data-mode="selected-promo">
+            <div class="font-medium text-slate-900">Selected promos…</div>
+            <div class="text-xs text-slate-500">Pick up to 5 · one sheet per promo</div>
+          </button>
+          <button class="export-opt w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition" data-mode="selected-product">
+            <div class="font-medium text-slate-900">Selected products…</div>
+            <div class="text-xs text-slate-500">Pick up to 5 · one sheet per product</div>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </header>
@@ -122,6 +141,31 @@
 </div>
 
 </main>
+
+<!-- MULTISELECT MODAL -->
+<div id="selectModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <h2 id="selectModalTitle" class="text-lg font-semibold text-slate-900">Select items</h2>
+      <button id="selectModalClose" class="text-slate-400 hover:text-slate-900 text-2xl leading-none">×</button>
+    </div>
+    <div class="px-6 py-4 border-b border-slate-100">
+      <input id="selectSearch" placeholder="Search code or description..."
+        class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900">
+      <div class="flex items-center justify-between mt-3 text-sm">
+        <span class="text-slate-500">Selected: <span id="selectCounter" class="font-semibold text-slate-900">0</span> / 5 max</span>
+        <button id="selectClearAll" class="text-slate-500 hover:text-red-600 text-xs font-medium">Clear selection</button>
+      </div>
+    </div>
+    <div id="selectList" class="flex-1 overflow-y-auto px-6 py-2"></div>
+    <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-2">
+      <button id="selectCancel" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 rounded-lg">Cancel</button>
+      <button id="selectConfirm" class="px-5 py-2 text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+        Export
+      </button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ============================================================
@@ -731,8 +775,7 @@ function showApp() {
   document.getElementById('dropZoneWrap').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('btnClear').classList.remove('hidden');
-  document.getElementById('btnExportLight').classList.remove('hidden');
-  document.getElementById('btnExportFull').classList.remove('hidden');
+  document.getElementById('exportMenuWrap').classList.remove('hidden');
 
   document.getElementById('statPromos').textContent = fmtNum(state.info.length);
   document.getElementById('statProducts').textContent = fmtNum(state.product.length);
@@ -899,8 +942,498 @@ async function exportExcel(includeDetail) {
 }
 
 /* ============================================================
-   RESTORE FROM INDEXEDDB
+   MULTISELECT MODAL
    ============================================================ */
+const MAX_SELECT = 5;
+let selectState = { mode: null, items: [], selected: new Set() };
+
+function openSelectModal(mode) {
+  selectState.mode = mode;
+  selectState.selected = new Set();
+
+  if (mode === 'promo') {
+    selectState.items = state.info.map(r => ({
+      code: String(r['Promotion Code']).trim(),
+      desc: r['Promotion Description'] || '',
+    })).filter(x => x.code);
+    document.getElementById('selectModalTitle').textContent = 'Select Promo Codes (max 5)';
+  } else {
+    selectState.items = state.product.map(r => ({
+      code: String(r['Product Code']).trim(),
+      desc: r['Product Description'] || '',
+    })).filter(x => x.code);
+    document.getElementById('selectModalTitle').textContent = 'Select Product Codes (max 5)';
+  }
+
+  renderSelectList('');
+  document.getElementById('selectSearch').value = '';
+  updateSelectCounter();
+  document.getElementById('selectModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('selectSearch').focus(), 50);
+}
+
+function closeSelectModal() {
+  document.getElementById('selectModal').classList.add('hidden');
+}
+
+function renderSelectList(query) {
+  const q = query.toLowerCase().trim();
+  const filtered = q ? selectState.items.filter(x =>
+    x.code.toLowerCase().includes(q) || x.desc.toLowerCase().includes(q)) : selectState.items;
+
+  const listEl = document.getElementById('selectList');
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="py-8 text-center text-sm text-slate-400">No matches</div>';
+    return;
+  }
+
+  // Cap render at 200 rows for performance
+  const capped = filtered.slice(0, 200);
+  const overflow = filtered.length - capped.length;
+
+  listEl.innerHTML = capped.map(x => {
+    const checked = selectState.selected.has(x.code);
+    const atMax = selectState.selected.size >= MAX_SELECT && !checked;
+    return `<label class="flex items-start gap-3 py-2 px-2 rounded hover:bg-slate-50 cursor-pointer ${atMax ? 'opacity-40 cursor-not-allowed' : ''}">
+      <input type="checkbox" class="mt-1 rounded border-slate-300" data-code="${esc(x.code)}" ${checked ? 'checked' : ''} ${atMax ? 'disabled' : ''}>
+      <div class="flex-1 min-w-0">
+        <div class="font-mono text-sm font-medium text-slate-900">${esc(x.code)}</div>
+        <div class="text-xs text-slate-500 truncate">${esc(x.desc)}</div>
+      </div>
+    </label>`;
+  }).join('') + (overflow > 0 ? `<div class="py-3 text-center text-xs text-slate-400 italic">…and ${overflow} more (refine search)</div>` : '');
+
+  listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const code = e.target.dataset.code;
+      if (e.target.checked) {
+        if (selectState.selected.size >= MAX_SELECT) {
+          e.target.checked = false;
+          Swal.fire({ icon: 'info', title: 'Max 5 items', text: 'You can only export up to 5 items at a time.',
+            timer: 2000, timerProgressBar: true, showConfirmButton: false });
+          return;
+        }
+        selectState.selected.add(code);
+      } else {
+        selectState.selected.delete(code);
+      }
+      updateSelectCounter();
+      // Re-render to update disabled state on other rows
+      renderSelectList(document.getElementById('selectSearch').value);
+    });
+  });
+}
+
+function updateSelectCounter() {
+  document.getElementById('selectCounter').textContent = selectState.selected.size;
+  document.getElementById('selectConfirm').disabled = selectState.selected.size === 0;
+  document.getElementById('selectConfirm').textContent =
+    selectState.selected.size === 0 ? 'Export' : `Export ${selectState.selected.size} ${selectState.mode === 'promo' ? 'Promo' : 'Product'}${selectState.selected.size > 1 ? 's' : ''}`;
+}
+
+/* ============================================================
+   SELECTED EXPORT (ExcelJS with formatting)
+   ============================================================ */
+async function exportSelected() {
+  const codes = Array.from(selectState.selected);
+  const mode = selectState.mode;
+  closeSelectModal();
+
+  Swal.fire({ title: 'Building workbook...', html: '<div class="text-slate-500">Formatting selected items</div>',
+    allowOutsideClick: false, didOpen: () => Swal.showLoading(), showConfirmButton: false });
+
+  await new Promise(r => setTimeout(r, 50));
+
+  try {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Master Promo–Product Assignment';
+    wb.created = new Date();
+
+    // Styles
+    const NAVY = 'FF1E293B', TEAL = 'FF0F766E', GOLD = 'FFB45309', SUB = 'FFF1F5F9', HDR = 'FFE2E8F0';
+
+    // Overview sheet
+    const ov = wb.addWorksheet('Overview', { views: [{ state: 'frozen', ySplit: 1 }] });
+    ov.columns = [
+      { header: '', width: 20 }, { header: '', width: 45 }, { header: '', width: 20 },
+      { header: '', width: 20 }, { header: '', width: 20 },
+    ];
+
+    const ovTitle = ov.getCell('A1');
+    ovTitle.value = `Export: ${codes.length} ${mode === 'promo' ? 'Promo' : 'Product'} Codes`;
+    ovTitle.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' }, name: 'Arial' };
+    ovTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    ovTitle.alignment = { vertical: 'middle', indent: 1 };
+    ov.mergeCells('A1:E1');
+    ov.getRow(1).height = 26;
+
+    ov.getCell('A3').value = 'Generated:';
+    ov.getCell('B3').value = new Date().toLocaleString();
+    ov.getCell('A4').value = 'Type:';
+    ov.getCell('B4').value = mode === 'promo' ? 'Promo Codes' : 'Product Codes';
+    ov.getCell('A5').value = 'Count:';
+    ov.getCell('B5').value = codes.length;
+    ['A3','A4','A5'].forEach(a => { ov.getCell(a).font = { bold: true, color: { argb: 'FF64748B' }, name: 'Arial' }; });
+
+    // Items table
+    const startRow = 7;
+    const ovHeaders = mode === 'promo'
+      ? ['Sheet', 'Promo Code', 'Description', 'Tiers', 'Eligible SKUs', 'Excluded SKUs']
+      : ['Sheet', 'Product Code', 'Description', 'Prodcat 10 Code', 'Promos Eligible', 'Promos Excluded'];
+    ovHeaders.forEach((h, i) => {
+      const c = ov.getCell(startRow, i + 1);
+      c.value = h;
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Arial', size: 10 };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+      c.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    ov.columns[3].width = 25; ov.columns[4].width = 18; ov.columns[5].width = 18;
+    ov.getRow(startRow).height = 20;
+
+    // Build detail sheets + overview rows
+    for (let i = 0; i < codes.length; i++) {
+      const code = codes[i];
+      const sheetName = code.substring(0, 31); // Excel limit
+      if (mode === 'promo') {
+        buildPromoSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR);
+        const info = state.info.find(r => String(r['Promotion Code']).trim() === code);
+        const tiers = new Set(state.tierDetail.filter(t => t.promo === code).map(t => t.tier)).size;
+        const eligible = (state.promoToProducts.get(code) || new Set()).size;
+        const excluded = state.excl.filter(e => String(e['Promotion Code']).trim() === code).length;
+        const r = startRow + 1 + i;
+        ov.getCell(r, 1).value = { text: sheetName, hyperlink: `#'${sheetName}'!A1` };
+        ov.getCell(r, 1).font = { color: { argb: 'FF0369A1' }, underline: true, name: 'Arial', size: 10 };
+        ov.getCell(r, 2).value = code;
+        ov.getCell(r, 2).font = { name: 'Consolas', size: 10 };
+        ov.getCell(r, 3).value = info?.['Promotion Description'] || '';
+        ov.getCell(r, 4).value = tiers;
+        ov.getCell(r, 5).value = eligible;
+        ov.getCell(r, 6).value = excluded;
+      } else {
+        buildProductSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR);
+        const p = state.productMap.get(code);
+        const eligible = (state.productToPromos.get(code) || new Set()).size;
+        const excluded = (state.productToExclusions.get(code) || new Set()).size;
+        const r = startRow + 1 + i;
+        ov.getCell(r, 1).value = { text: sheetName, hyperlink: `#'${sheetName}'!A1` };
+        ov.getCell(r, 1).font = { color: { argb: 'FF0369A1' }, underline: true, name: 'Arial', size: 10 };
+        ov.getCell(r, 2).value = code;
+        ov.getCell(r, 2).font = { name: 'Consolas', size: 10 };
+        ov.getCell(r, 3).value = p?.['Product Description'] || '';
+        ov.getCell(r, 4).value = p?.['Prodcat 10 Code'] || '';
+        ov.getCell(r, 5).value = eligible;
+        ov.getCell(r, 6).value = excluded;
+      }
+    }
+
+    Swal.update({ html: '<div class="text-slate-500">Writing file...</div>' });
+    await new Promise(r => setTimeout(r, 50));
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url;
+    a.download = `Selected_${mode === 'promo' ? 'Promos' : 'Products'}_${ts}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    Swal.fire({ icon: 'success', title: 'Excel exported', html: `<div class="text-sm text-slate-600">${codes.length} ${mode === 'promo' ? 'promos' : 'products'} · 1 Overview + ${codes.length} detail sheets</div>`,
+      timer: 2500, timerProgressBar: true, showConfirmButton: false });
+  } catch (err) {
+    console.error(err);
+    Swal.fire({ icon: 'error', title: 'Export failed', text: err.message, confirmButtonColor: '#1e293b' });
+  }
+}
+
+function buildPromoSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR) {
+  const info = state.info.find(r => String(r['Promotion Code']).trim() === code);
+  if (!info) return;
+
+  const ws = wb.addWorksheet(sheetName, { views: [{ state: 'frozen', ySplit: 2 }] });
+  ws.columns = [{ width: 22 }, { width: 45 }, { width: 22 }, { width: 10 }, { width: 12 }, { width: 16 }, { width: 16 }];
+
+  const tiers = state.tierDetail.filter(r => r.promo === code);
+  const eligibleProducts = Array.from(state.promoToProducts.get(code) || []);
+  const excludedRows = state.excl.filter(r => String(r['Promotion Code']).trim() === code);
+  const numTiers = new Set(tiers.map(t => t.tier)).size;
+
+  // Row 1: Title bar
+  const t1 = ws.getCell('A1');
+  t1.value = `🔍 Promo: ${code} — ${info['Promotion Description'] || ''}`;
+  t1.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Arial' };
+  t1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  t1.alignment = { vertical: 'middle', indent: 1 };
+  ws.mergeCells('A1:G1');
+  ws.getRow(1).height = 26;
+
+  // Section 1 title (row 3)
+  sectionTitle(ws, 3, '📋 SECTION 1 — PROMO HEADER', NAVY);
+
+  // Header key-value pairs
+  const fields = [
+    ['Description', info['Promotion Description']],
+    ['T-Plan Number', info['T-Plan Number']],
+    ['Start Date', info['Promotion Start Date']],
+    ['End Date', info['Promotion End Date']],
+    ['Type / Category', `${info['Type'] || ''} / ${info['Category'] || ''}`],
+    ['Buy Type / UOM', `${info['Buy Type'] || ''} / ${info['Buy UOM'] || ''}`],
+    ['Claim Type', info['Claim Type']],
+    ['Budget', parseFloat(info['Budget']) || 0],
+    ['Scheme Flags', schemeFlags(info)],
+    ['Status', info['Status']],
+    ['Notes', info['Notes']],
+    ['Approval Ref', info['Approval Reference']],
+  ];
+  let r = 4;
+  for (const [label, val] of fields) {
+    kvRow(ws, r, label, val, SUB);
+    if (label === 'Budget' && typeof val === 'number') ws.getCell(r, 2).numFmt = '#,##0;-#,##0;-';
+    r++;
+  }
+
+  // Counts row
+  const cr = r;
+  ws.getCell(cr, 1).value = 'Counts';
+  ws.getCell(cr, 1).font = { bold: true, size: 10, name: 'Arial' };
+  ws.getCell(cr, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SUB } };
+  ws.getCell(cr, 1).alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+  ws.getCell(cr, 2).value = `# Tiers: ${numTiers}`;
+  ws.getCell(cr, 2).font = { bold: true, size: 11, color: { argb: NAVY }, name: 'Arial' };
+  ws.getCell(cr, 2).alignment = { horizontal: 'center', vertical: 'middle' };
+  ws.getCell(cr, 3).value = `# Eligible SKUs: ${eligibleProducts.length}`;
+  ws.getCell(cr, 3).font = { bold: true, size: 11, color: { argb: TEAL }, name: 'Arial' };
+  ws.getCell(cr, 3).alignment = { horizontal: 'center', vertical: 'middle' };
+  ws.mergeCells(cr, 3, cr, 5);
+  ws.getCell(cr, 6).value = `# Excluded SKUs: ${excludedRows.length}`;
+  ws.getCell(cr, 6).font = { bold: true, size: 11, color: { argb: GOLD }, name: 'Arial' };
+  ws.getCell(cr, 6).alignment = { horizontal: 'center', vertical: 'middle' };
+  ws.mergeCells(cr, 6, cr, 7);
+  ws.getRow(cr).height = 22;
+  r++;
+
+  // Section 2: Tier Conditions
+  r++;
+  sectionTitle(ws, r, `📊 SECTION 2 — TIER CONDITIONS (${tiers.length})`, TEAL);
+  r++;
+  const tierHeaders = ['Tier', 'Prodcat Level', 'Prodcat Code', 'UOM', 'Min Qty', 'Must', '# Eligible SKUs'];
+  tableHeader(ws, r, tierHeaders, NAVY);
+  r++;
+  for (const t of tiers) {
+    ws.getCell(r, 1).value = t.tier;
+    ws.getCell(r, 2).value = t.level;
+    ws.getCell(r, 3).value = t.prodcat;
+    ws.getCell(r, 3).font = { name: 'Consolas', size: 10 };
+    ws.getCell(r, 4).value = t.uom;
+    ws.getCell(r, 5).value = t.minQty;
+    ws.getCell(r, 6).value = t.must ? '✓' : '';
+    ws.getCell(r, 6).alignment = { horizontal: 'center' };
+    ws.getCell(r, 7).value = t.skuCount;
+    r++;
+  }
+  if (tiers.length === 0) { ws.getCell(r, 1).value = '(no tier conditions)'; ws.getCell(r, 1).font = { italic: true, color: { argb: 'FF94A3B8' } }; r++; }
+
+  // Section 3: Eligible SKUs
+  r++;
+  const productRows = eligibleProducts.map(pc => {
+    const p = state.productMap.get(pc);
+    return { code: pc, desc: p?.['Product Description'] || '', p10: p?.['Prodcat 10 Code'] || '',
+      status: p?.['Status of the Product'] || '', price: parseFloat(p?.['Ex-Factory Price']) || 0 };
+  }).sort((a,b) => a.code.localeCompare(b.code));
+  sectionTitle(ws, r, `✅ SECTION 3 — ELIGIBLE SKUs (${productRows.length})`, TEAL);
+  r++;
+  tableHeader(ws, r, ['Product Code', 'Product Description', 'Prodcat 10 Code', 'Status', 'Ex-Factory Price'], NAVY);
+  r++;
+  for (const p of productRows) {
+    ws.getCell(r, 1).value = p.code;
+    ws.getCell(r, 1).font = { name: 'Consolas', size: 10 };
+    ws.getCell(r, 2).value = p.desc;
+    ws.getCell(r, 3).value = p.p10;
+    ws.getCell(r, 3).font = { name: 'Consolas', size: 10 };
+    ws.getCell(r, 4).value = p.status;
+    ws.getCell(r, 5).value = p.price;
+    ws.getCell(r, 5).numFmt = '#,##0.00;-#,##0.00;-';
+    r++;
+  }
+  if (productRows.length === 0) { ws.getCell(r, 1).value = '(no eligible SKUs)'; ws.getCell(r, 1).font = { italic: true, color: { argb: 'FF94A3B8' } }; r++; }
+
+  // Section 4: Excluded SKUs
+  r++;
+  const excludedDetail = excludedRows.map(er => {
+    const pc = String(er['Excluded Product Code']).trim();
+    const p = state.productMap.get(pc);
+    return { tier: er['Promo Index'], code: pc, desc: p?.['Product Description'] || '', p10: p?.['Prodcat 10 Code'] || '' };
+  }).sort((a,b) => (a.tier - b.tier) || a.code.localeCompare(b.code));
+  sectionTitle(ws, r, `❌ SECTION 4 — EXCLUDED SKUs (${excludedDetail.length})`, GOLD);
+  r++;
+  tableHeader(ws, r, ['Tier', 'Excluded Product Code', 'Product Description', 'Prodcat 10 Code'], NAVY);
+  r++;
+  for (const e of excludedDetail) {
+    ws.getCell(r, 1).value = e.tier;
+    ws.getCell(r, 2).value = e.code;
+    ws.getCell(r, 2).font = { name: 'Consolas', size: 10 };
+    ws.getCell(r, 3).value = e.desc;
+    ws.getCell(r, 4).value = e.p10;
+    ws.getCell(r, 4).font = { name: 'Consolas', size: 10 };
+    r++;
+  }
+  if (excludedDetail.length === 0) { ws.getCell(r, 1).value = '(no excluded SKUs)'; ws.getCell(r, 1).font = { italic: true, color: { argb: 'FF94A3B8' } }; }
+}
+
+function buildProductSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR) {
+  const p = state.productMap.get(code);
+  if (!p) return;
+
+  const ws = wb.addWorksheet(sheetName, { views: [{ state: 'frozen', ySplit: 2 }] });
+  ws.columns = [{ width: 22 }, { width: 40 }, { width: 40 }, { width: 8 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 12 }];
+
+  const eligiblePromos = Array.from(state.productToPromos.get(code) || []);
+  const excludedPromos = Array.from(state.productToExclusions.get(code) || []);
+
+  // Row 1: Title
+  const t1 = ws.getCell('A1');
+  t1.value = `🔎 Product: ${code} — ${p['Product Description'] || ''}`;
+  t1.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Arial' };
+  t1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  t1.alignment = { vertical: 'middle', indent: 1 };
+  ws.mergeCells('A1:H1');
+  ws.getRow(1).height = 26;
+
+  // Section: Product Info
+  sectionTitle(ws, 3, '📋 PRODUCT INFO', NAVY);
+  const fields = [
+    ['Product Description', p['Product Description']],
+    ['Prodcat 10 Code', p['Prodcat 10 Code']],
+    ['Status', p['Status of the Product']],
+    ['Base Product', p['Base Product']],
+    ['BI UOM', p['BI UOM']],
+    ['Ex-Factory Price', parseFloat(p['Ex-Factory Price']) || 0],
+  ];
+  let r = 4;
+  for (const [label, val] of fields) {
+    kvRow(ws, r, label, val, SUB);
+    if (label === 'Ex-Factory Price') ws.getCell(r, 2).numFmt = '#,##0.00;-#,##0.00;-';
+    r++;
+  }
+
+  // Counts
+  const cr = r;
+  ws.getCell(cr, 1).value = 'Counts';
+  ws.getCell(cr, 1).font = { bold: true, size: 10, name: 'Arial' };
+  ws.getCell(cr, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SUB } };
+  ws.getCell(cr, 1).alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+  ws.getCell(cr, 2).value = `# Promos Eligible: ${eligiblePromos.length}`;
+  ws.getCell(cr, 2).font = { bold: true, size: 11, color: { argb: TEAL }, name: 'Arial' };
+  ws.getCell(cr, 2).alignment = { horizontal: 'center', vertical: 'middle' };
+  ws.mergeCells(cr, 2, cr, 4);
+  ws.getCell(cr, 5).value = `# Promos Excluded: ${excludedPromos.length}`;
+  ws.getCell(cr, 5).font = { bold: true, size: 11, color: { argb: GOLD }, name: 'Arial' };
+  ws.getCell(cr, 5).alignment = { horizontal: 'center', vertical: 'middle' };
+  ws.mergeCells(cr, 5, cr, 8);
+  ws.getRow(cr).height = 22;
+  r++;
+
+  // Eligible Promos section
+  const eligibleRows = [];
+  for (const promo of eligiblePromos) {
+    const tiersForProduct = state.expanded.filter(x => x.promo === promo && x.productCode === code);
+    const promoInfo = state.info.find(rr => String(rr['Promotion Code']).trim() === promo);
+    for (const t of tiersForProduct) {
+      eligibleRows.push({
+        promo, promoDesc: state.promoDesc.get(promo) || '',
+        tier: t.tier, prodcat: t.prodcatAssigned, uom: t.uom, minQty: t.minQty,
+        startDate: promoInfo?.['Promotion Start Date'] || '',
+        endDate: promoInfo?.['Promotion End Date'] || '',
+      });
+    }
+  }
+  eligibleRows.sort((a,b) => a.promo.localeCompare(b.promo) || a.tier - b.tier);
+
+  r++;
+  sectionTitle(ws, r, `✅ ELIGIBLE PROMOS (${eligibleRows.length} tier rows)`, TEAL);
+  r++;
+  tableHeader(ws, r, ['Promo Code', 'Description', 'Tier', 'Start', 'End', 'Prodcat Assigned', 'UOM', 'Min Qty'], NAVY);
+  r++;
+  for (const row of eligibleRows) {
+    ws.getCell(r, 1).value = row.promo;
+    ws.getCell(r, 1).font = { name: 'Consolas', size: 10, bold: true };
+    ws.getCell(r, 2).value = row.promoDesc;
+    ws.getCell(r, 3).value = row.tier;
+    ws.getCell(r, 3).alignment = { horizontal: 'center' };
+    ws.getCell(r, 4).value = row.startDate;
+    ws.getCell(r, 5).value = row.endDate;
+    ws.getCell(r, 6).value = row.prodcat;
+    ws.getCell(r, 6).font = { name: 'Consolas', size: 10 };
+    ws.getCell(r, 7).value = row.uom;
+    ws.getCell(r, 8).value = row.minQty;
+    r++;
+  }
+  if (eligibleRows.length === 0) { ws.getCell(r, 1).value = '(no eligible promos)'; ws.getCell(r, 1).font = { italic: true, color: { argb: 'FF94A3B8' } }; r++; }
+
+  // Excluded Promos section
+  const excludedRowsD = state.excl.filter(rr => String(rr['Excluded Product Code']).trim() === code)
+    .map(rr => {
+      const promo = String(rr['Promotion Code']).trim();
+      const promoInfo = state.info.find(x => String(x['Promotion Code']).trim() === promo);
+      return { promo, promoDesc: state.promoDesc.get(promo) || '', tier: rr['Promo Index'],
+        startDate: promoInfo?.['Promotion Start Date'] || '', endDate: promoInfo?.['Promotion End Date'] || '' };
+    }).sort((a,b) => a.promo.localeCompare(b.promo));
+
+  r++;
+  sectionTitle(ws, r, `❌ EXCLUDED PROMOS (${excludedRowsD.length})`, GOLD);
+  r++;
+  tableHeader(ws, r, ['Promo Code', 'Description', 'Tier', 'Start', 'End'], NAVY);
+  r++;
+  for (const row of excludedRowsD) {
+    ws.getCell(r, 1).value = row.promo;
+    ws.getCell(r, 1).font = { name: 'Consolas', size: 10, bold: true };
+    ws.getCell(r, 2).value = row.promoDesc;
+    ws.getCell(r, 3).value = row.tier;
+    ws.getCell(r, 3).alignment = { horizontal: 'center' };
+    ws.getCell(r, 4).value = row.startDate;
+    ws.getCell(r, 5).value = row.endDate;
+    r++;
+  }
+  if (excludedRowsD.length === 0) { ws.getCell(r, 1).value = '(no excluded promos)'; ws.getCell(r, 1).font = { italic: true, color: { argb: 'FF94A3B8' } }; }
+}
+
+function sectionTitle(ws, row, text, color) {
+  const c = ws.getCell(row, 1);
+  c.value = text;
+  c.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' }, name: 'Arial' };
+  c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+  c.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+  const lastCol = ws.columns.length;
+  ws.mergeCells(row, 1, row, lastCol);
+  ws.getRow(row).height = 20;
+}
+
+function tableHeader(ws, row, headers, color) {
+  headers.forEach((h, i) => {
+    const c = ws.getCell(row, i + 1);
+    c.value = h;
+    c.font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Arial', size: 10 };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+    c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    c.border = { bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+  });
+  ws.getRow(row).height = 22;
+}
+
+function kvRow(ws, row, label, value, subColor) {
+  const l = ws.getCell(row, 1);
+  l.value = label;
+  l.font = { bold: true, size: 10, name: 'Arial' };
+  l.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: subColor } };
+  l.alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+  const v = ws.getCell(row, 2);
+  v.value = value ?? '';
+  v.font = { size: 10, name: 'Arial' };
+  v.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+  const lastCol = ws.columns.length;
+  ws.mergeCells(row, 2, row, lastCol);
+}
 async function tryRestore() {
   try {
     const saved = await idbGet('raw');
@@ -958,9 +1491,35 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 document.getElementById('promoSearch').addEventListener('input', (e) => renderPromo(e.target.value.trim()));
 document.getElementById('productSearch').addEventListener('input', (e) => renderProduct(e.target.value.trim()));
 
-// Export
-document.getElementById('btnExportFull').addEventListener('click', () => exportExcel(true));
-document.getElementById('btnExportLight').addEventListener('click', () => exportExcel(false));
+// Export dropdown
+const btnMenu = document.getElementById('btnExportMenu');
+const menu = document.getElementById('exportMenu');
+btnMenu.addEventListener('click', (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); });
+document.addEventListener('click', () => menu.classList.add('hidden'));
+document.querySelectorAll('.export-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    menu.classList.add('hidden');
+    const mode = btn.dataset.mode;
+    if (mode === 'full') exportExcel(true);
+    else if (mode === 'light') exportExcel(false);
+    else if (mode === 'selected-promo') openSelectModal('promo');
+    else if (mode === 'selected-product') openSelectModal('product');
+  });
+});
+
+// Multiselect modal
+document.getElementById('selectModalClose').addEventListener('click', closeSelectModal);
+document.getElementById('selectCancel').addEventListener('click', closeSelectModal);
+document.getElementById('selectSearch').addEventListener('input', (e) => renderSelectList(e.target.value));
+document.getElementById('selectClearAll').addEventListener('click', () => {
+  selectState.selected.clear();
+  updateSelectCounter();
+  renderSelectList(document.getElementById('selectSearch').value);
+});
+document.getElementById('selectConfirm').addEventListener('click', exportSelected);
+document.getElementById('selectModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('selectModal')) closeSelectModal();
+});
 
 // Reupload
 document.getElementById('btnReupload').addEventListener('click', () => document.getElementById('fileInput').click());
