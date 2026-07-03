@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Promo–Product Assignment</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  .tab-active { background: #1e293b; color: #fff; }
+  .tab-inactive { background: #f1f5f9; color: #475569; }
+  .kv-label { color: #64748b; font-weight: 500; }
+  .kv-value { color: #0f172a; font-weight: 500; }
+  .metric-pill { display: inline-flex; align-items: center; padding: 0.375rem 0.875rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; }
+  .drop-zone-active { background: #f0fdf4 !important; border-color: #10b981 !important; }
+  table { border-collapse: separate; border-spacing: 0; }
+  .data-table thead th { position: sticky; top: 0; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .data-table tbody tr:nth-child(odd) { background: #fafafa; }
+  .data-table tbody tr:hover { background: #f0f9ff; }
+  .swal2-popup { font-family: 'Inter', system-ui, sans-serif !important; }
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<!-- HEADER -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-slate-900">Master Promo–Product Assignment</h1>
+      <p id="dataStatus" class="text-xs text-slate-500 mt-0.5">No data loaded</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="btnClear" class="hidden px-3 py-2 text-sm font-medium text-slate-600 hover:text-red-600 rounded-lg transition" title="Clear all data">
+        Clear
+      </button>
+      <button id="btnExportLight" class="hidden px-4 py-2 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition">
+        Export Light
+      </button>
+      <button id="btnExportFull" class="hidden px-4 py-2 text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 rounded-lg transition">
+        Export Full
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-6 py-8">
+
+<!-- DROP ZONE (before data loaded) -->
+<div id="dropZoneWrap" class="mt-8">
+  <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-2xl bg-white p-16 text-center hover:border-slate-400 transition cursor-pointer">
+    <div class="text-5xl mb-4">📂</div>
+    <h2 class="text-lg font-semibold text-slate-900 mb-2">Drop 4 CSV files here</h2>
+    <p class="text-sm text-slate-500 mb-6">or click to browse</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto text-left">
+      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <div class="text-xs font-mono text-slate-500">Expected files:</div>
+        <div class="text-xs font-medium text-slate-700 mt-1">PROMO_INFO.csv</div>
+      </div>
+      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <div class="text-xs font-mono text-slate-500">&nbsp;</div>
+        <div class="text-xs font-medium text-slate-700 mt-1">PROMO_PRDASSIGN.csv</div>
+      </div>
+      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <div class="text-xs font-mono text-slate-500">&nbsp;</div>
+        <div class="text-xs font-medium text-slate-700 mt-1">PROMO_PRDEXCLUDED.csv</div>
+      </div>
+      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <div class="text-xs font-mono text-slate-500">&nbsp;</div>
+        <div class="text-xs font-medium text-slate-700 mt-1">PRODUCT_INFO.csv</div>
+      </div>
+    </div>
+    <p class="text-xs text-slate-400 mt-6">Auto-detected by filename · UTF-16 / UTF-8 supported · Data saved in browser (IndexedDB)</p>
+  </div>
+  <input id="fileInput" type="file" multiple accept=".csv" class="hidden">
+</div>
+
+<!-- APP (after data loaded) -->
+<div id="app" class="hidden">
+  <!-- Data summary bar -->
+  <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex items-center justify-between text-sm">
+    <div class="flex items-center gap-6">
+      <div><span class="kv-label">Promotions:</span> <span id="statPromos" class="kv-value">0</span></div>
+      <div><span class="kv-label">Products:</span> <span id="statProducts" class="kv-value">0</span></div>
+      <div><span class="kv-label">Assignments:</span> <span id="statAssign" class="kv-value">0</span></div>
+      <div><span class="kv-label">Exclusions:</span> <span id="statExcl" class="kv-value">0</span></div>
+      <div><span class="kv-label">Expanded SKU pairs:</span> <span id="statExpanded" class="kv-value">0</span></div>
+    </div>
+    <button id="btnReupload" class="text-sm font-medium text-slate-600 hover:text-slate-900">+ Upload new data</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-2 mb-6">
+    <button class="tab-btn tab-active px-5 py-2.5 rounded-lg text-sm font-medium transition" data-tab="promo">🔍 Promo Lookup</button>
+    <button class="tab-btn tab-inactive px-5 py-2.5 rounded-lg text-sm font-medium transition" data-tab="product">🔎 Product Lookup</button>
+  </div>
+
+  <!-- PROMO LOOKUP TAB -->
+  <section id="tabPromo" class="tab-panel">
+    <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Promo Code</label>
+      <input id="promoSearch" list="promoList" placeholder="Type or select a promo code..."
+        class="w-full px-4 py-3 text-lg font-mono border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-100 transition">
+      <datalist id="promoList"></datalist>
+    </div>
+    <div id="promoResult"></div>
+  </section>
+
+  <!-- PRODUCT LOOKUP TAB -->
+  <section id="tabProduct" class="tab-panel hidden">
+    <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Product Code</label>
+      <input id="productSearch" list="productList" placeholder="Type or select a product code..."
+        class="w-full px-4 py-3 text-lg font-mono border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-100 transition">
+      <datalist id="productList"></datalist>
+    </div>
+    <div id="productResult"></div>
+  </section>
+</div>
+
+</main>
+
+<script>
+/* ============================================================
+   STATE + INDEXEDDB
+   ============================================================ */
+const DB_NAME = 'PromoProductDB', STORE = 'files', VERSION = 1;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, VERSION);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGet(key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSet(key, value) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbClear() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+const state = {
+  info: null, assign: null, excl: null, product: null,
+  productMap: null,       // Map<code, row>
+  prodByP10: null,        // Map<prodcat10, Array<code>>
+  allP10: null,           // Array<prodcat10>
+  promoDesc: null,        // Map<promo, desc>
+  expanded: null,         // Array<{promo, tier, level, prodcatAssigned, uom, minQty, must, productCode}>
+  promoToProducts: null,  // Map<promo, Set<code>>
+  productToPromos: null,  // Map<code, Set<promo>>
+  productToExclusions: null, // Map<code, Set<promo>>
+  tierDetail: null,       // Array
+  removedByExcl: 0,
+  missingProdcat: [],
+};
+
+/* ============================================================
+   FILE PARSING
+   ============================================================ */
+const FILE_MAP = {
+  info: /promo[_ ]?info/i,
+  assign: /promo[_ ]?prd[_ ]?assign/i,
+  excl: /promo[_ ]?prd[_ ]?exclud/i,
+  product: /product[_ ]?info/i,
+};
+
+function detectEncoding(buffer) {
+  const b = new Uint8Array(buffer.slice(0, 3));
+  if (b[0] === 0xFF && b[1] === 0xFE) return 'utf-16le';
+  if (b[0] === 0xFE && b[1] === 0xFF) return 'utf-16be';
+  if (b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) return 'utf-8';
+  return 'utf-8';
+}
+function detectDelimiter(text) {
+  const firstLine = text.split('\n')[0] || '';
+  const tabs = (firstLine.match(/\t/g) || []).length;
+  const commas = (firstLine.match(/,/g) || []).length;
+  return tabs >= commas ? '\t' : ',';
+}
+
+async function parseFile(file) {
+  const buffer = await file.arrayBuffer();
+  const encoding = detectEncoding(buffer);
+  const decoder = new TextDecoder(encoding);
+  const text = decoder.decode(buffer);
+  const delimiter = detectDelimiter(text);
+  return new Promise((resolve, reject) => {
+    Papa.parse(text, {
+      header: true, delimiter, skipEmptyLines: true, dynamicTyping: false,
+      complete: (res) => resolve(res.data),
+      error: (err) => reject(err),
+    });
+  });
+}
+
+function classifyFile(filename) {
+  for (const [key, re] of Object.entries(FILE_MAP)) {
+    if (re.test(filename)) return key;
+  }
+  return null;
+}
+
+/* ============================================================
+   DATA PROCESSING (expand prodcat, apply exclusions, build indexes)
+   ============================================================ */
+function buildIndexes() {
+  const { info, assign, excl, product } = state;
+
+  // Product map
+  state.productMap = new Map();
+  state.prodByP10 = new Map();
+  for (const row of product) {
+    const code = String(row['Product Code']).trim();
+    if (!code) continue;
+    state.productMap.set(code, row);
+    const p10 = row['Prodcat 10 Code'];
+    if (p10) {
+      if (!state.prodByP10.has(p10)) state.prodByP10.set(p10, []);
+      state.prodByP10.get(p10).push(code);
+    }
+  }
+  state.allP10 = Array.from(state.prodByP10.keys());
+
+  // Promo description map
+  state.promoDesc = new Map();
+  for (const row of info) {
+    const code = String(row['Promotion Code']).trim();
+    if (code) state.promoDesc.set(code, row['Promotion Description'] || '');
+  }
+
+  // Exclusion set (for filtering during expansion)
+  const exclSet = new Set();
+  const productToExclusions = new Map();
+  for (const row of excl) {
+    const p = String(row['Promotion Code']).trim();
+    const c = String(row['Excluded Product Code']).trim();
+    if (p && c) {
+      exclSet.add(p + '|' + c);
+      if (!productToExclusions.has(c)) productToExclusions.set(c, new Set());
+      productToExclusions.get(c).add(p);
+    }
+  }
+  state.productToExclusions = productToExclusions;
+
+  // Expand assignments
+  const expandProdcat = (level, code) => {
+    const lvl = parseInt(level);
+    code = String(code).trim();
+    if (lvl === 7) return state.productMap.has(code) ? [code] : [];
+    const out = [];
+    for (const p10 of state.allP10) {
+      if (p10.startsWith(code)) {
+        out.push(...(state.prodByP10.get(p10) || []));
+      }
+    }
+    return out;
+  };
+
+  state.expanded = [];
+  state.missingProdcat = [];
+  const dedupSet = new Set();
+  const tierSkuCount = new Map(); // key: promo|tier|prodcatCode -> Set of products
+  state.removedByExcl = 0;
+
+  for (const row of assign) {
+    const promo = String(row['Promotion Code']).trim();
+    const tier = row['Promo Index'];
+    const level = row['Prodcat Level'];
+    const prodcat = String(row['Prodcat Code']).trim();
+    const uom = row['UOM'];
+    const minQty = row['Min Qty'];
+    const must = row['Must'];
+    if (!promo || !prodcat) continue;
+
+    const prods = expandProdcat(level, prodcat);
+    if (prods.length === 0) {
+      state.missingProdcat.push({ promo, tier, level, prodcat });
+      continue;
+    }
+    const skuKey = promo + '|' + tier + '|' + prodcat;
+    if (!tierSkuCount.has(skuKey)) tierSkuCount.set(skuKey, new Set());
+
+    for (const pc of prods) {
+      // Apply exclusion
+      if (exclSet.has(promo + '|' + pc)) {
+        state.removedByExcl++;
+        continue;
+      }
+      const dk = promo + '|' + tier + '|' + pc;
+      if (dedupSet.has(dk)) continue;
+      dedupSet.add(dk);
+      tierSkuCount.get(skuKey).add(pc);
+      state.expanded.push({
+        promo, tier: parseInt(tier), level: parseInt(level),
+        prodcatAssigned: prodcat, uom, minQty: parseFloat(minQty) || 0,
+        must: parseInt(must) || 0, productCode: pc,
+      });
+    }
+  }
+
+  // Build promo->products and product->promos indexes
+  state.promoToProducts = new Map();
+  state.productToPromos = new Map();
+  for (const r of state.expanded) {
+    if (!state.promoToProducts.has(r.promo)) state.promoToProducts.set(r.promo, new Set());
+    state.promoToProducts.get(r.promo).add(r.productCode);
+    if (!state.productToPromos.has(r.productCode)) state.productToPromos.set(r.productCode, new Set());
+    state.productToPromos.get(r.productCode).add(r.promo);
+  }
+
+  // Build tier detail
+  state.tierDetail = [];
+  for (const row of assign) {
+    const promo = String(row['Promotion Code']).trim();
+    const tier = parseInt(row['Promo Index']);
+    const prodcat = String(row['Prodcat Code']).trim();
+    const skuKey = promo + '|' + tier + '|' + prodcat;
+    const skuCount = tierSkuCount.get(skuKey) ? tierSkuCount.get(skuKey).size : 0;
+    state.tierDetail.push({
+      promo, promoDesc: state.promoDesc.get(promo) || '',
+      tier, level: parseInt(row['Prodcat Level']),
+      prodcat, uom: row['UOM'], minQty: parseFloat(row['Min Qty']) || 0,
+      must: parseInt(row['Must']) || 0, skuCount,
+    });
+  }
+}
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+function fmtNum(n) { return (n == null || isNaN(n)) ? '0' : Number(n).toLocaleString(); }
+function fmtCurr(n) { return (n == null || isNaN(n) || n === 0) ? '–' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function schemeFlags(row) {
+  const cols = {
+    'SCHEME MRP':'MRP','SCHEME TDR':'TDR','SCHEME QPS':'QPS','SCHEME PRORATA':'Prorata',
+    'SCHEME RANGE':'Range','SCHEME COMBI':'Combi','SCHEME DYNAMIC':'Dynamic','BASIC_DISC':'Basic Disc',
+    'FOC_RECURRING':'FOC Recurring','MAX_COUNT_FLAG':'Max Count'
+  };
+  const flags = [];
+  for (const [k, v] of Object.entries(cols)) {
+    if (row[k] && String(row[k]) === '1') flags.push(v);
+  }
+  return flags.join(' + ') || '–';
+}
+
+function renderPromo(code) {
+  const el = document.getElementById('promoResult');
+  if (!code) { el.innerHTML = ''; return; }
+  const info = state.info.find(r => String(r['Promotion Code']).trim() === code);
+  if (!info) {
+    el.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
+      <div class="text-4xl mb-3">🔍</div>Promo code <span class="font-mono font-semibold text-slate-900">${esc(code)}</span> not found</div>`;
+    return;
+  }
+
+  const tiers = state.tierDetail.filter(r => r.promo === code);
+  const eligibleProducts = Array.from(state.promoToProducts.get(code) || []);
+  const excludedRows = state.excl.filter(r => String(r['Promotion Code']).trim() === code);
+  const numTiers = new Set(tiers.map(t => t.tier)).size;
+
+  const productRows = eligibleProducts.map(pc => {
+    const p = state.productMap.get(pc);
+    return { code: pc, desc: p?.['Product Description'] || '', p10: p?.['Prodcat 10 Code'] || '',
+      status: p?.['Status of the Product'] || '', price: parseFloat(p?.['Ex-Factory Price']) || 0 };
+  }).sort((a,b) => a.code.localeCompare(b.code));
+
+  const excludedDetail = excludedRows.map(r => {
+    const pc = String(r['Excluded Product Code']).trim();
+    const p = state.productMap.get(pc);
+    return { tier: r['Promo Index'], code: pc, desc: p?.['Product Description'] || '', p10: p?.['Prodcat 10 Code'] || '' };
+  }).sort((a,b) => (a.tier - b.tier) || a.code.localeCompare(b.code));
+
+  el.innerHTML = `
+    <!-- Section 1: Header -->
+    <div id="promoSec1" class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-slate-400 text-sm">📋</span>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Promo Header</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+        ${kv('Description', info['Promotion Description'])}
+        ${kv('T-Plan Number', info['T-Plan Number'])}
+        ${kv('Start Date', info['Promotion Start Date'])}
+        ${kv('End Date', info['Promotion End Date'])}
+        ${kv('Type / Category', `${info['Type'] || ''} / ${info['Category'] || ''}`)}
+        ${kv('Buy Type / UOM', `${info['Buy Type'] || ''} / ${info['Buy UOM'] || ''}`)}
+        ${kv('Claim Type', info['Claim Type'])}
+        ${kv('Budget', info['Budget'] ? fmtNum(info['Budget']) : '–')}
+        ${kv('Scheme Flags', schemeFlags(info))}
+        ${kv('Status', info['Status'])}
+        ${kv('Notes', info['Notes'])}
+        ${kv('Approval Ref', info['Approval Reference'])}
+      </div>
+      <div class="flex flex-wrap gap-2 mt-5 pt-5 border-t border-slate-100">
+        <span class="metric-pill bg-slate-100 text-slate-700"># Tiers: ${numTiers}</span>
+        <span class="metric-pill bg-emerald-50 text-emerald-800"># Eligible SKUs: ${fmtNum(eligibleProducts.length)}</span>
+        <span class="metric-pill bg-amber-50 text-amber-800"># Excluded SKUs: ${fmtNum(excludedRows.length)}</span>
+      </div>
+    </div>
+
+    <!-- Section 2: Tiers -->
+    <div id="promoSec2" class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-slate-400 text-sm">📊</span>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Tier Conditions (${tiers.length})</h3>
+      </div>
+      ${tiers.length === 0 ? '<p class="text-sm text-slate-400 italic">No tier conditions</p>' :
+        `<div class="overflow-x-auto"><table class="data-table w-full text-sm">
+          <thead><tr>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Tier</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Prodcat Level</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Prodcat Code</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">UOM</th>
+            <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Min Qty</th>
+            <th class="text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Must</th>
+            <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase"># Eligible SKUs</th>
+          </tr></thead>
+          <tbody>
+            ${tiers.map(t => `<tr>
+              <td class="px-3 py-2 font-medium">${t.tier}</td>
+              <td class="px-3 py-2">${t.level}</td>
+              <td class="px-3 py-2 font-mono text-xs">${esc(t.prodcat)}</td>
+              <td class="px-3 py-2">${esc(t.uom)}</td>
+              <td class="px-3 py-2 text-right">${fmtNum(t.minQty)}</td>
+              <td class="px-3 py-2 text-center">${t.must ? '✓' : ''}</td>
+              <td class="px-3 py-2 text-right font-medium">${fmtNum(t.skuCount)}</td>
+            </tr>`).join('')}
+          </tbody></table></div>`}
+    </div>
+
+    <!-- Section 3: Eligible SKUs -->
+    <div id="promoSec3" class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-emerald-600 text-sm">✅</span>
+          <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Eligible SKUs (${fmtNum(productRows.length)})</h3>
+        </div>
+        ${productRows.length > 10 ? `<input id="promoSec3Filter" placeholder="Filter..." class="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-slate-400">` : ''}
+      </div>
+      ${productRows.length === 0 ? '<p class="text-sm text-slate-400 italic">No eligible SKUs</p>' :
+        `<div class="overflow-x-auto max-h-[500px] overflow-y-auto"><table class="data-table w-full text-sm">
+          <thead><tr>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Product Code</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Product Description</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Prodcat 10 Code</th>
+            <th class="text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Status</th>
+            <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Ex-Factory Price</th>
+          </tr></thead>
+          <tbody id="promoSec3Body">
+            ${productRows.map(p => `<tr data-search="${esc((p.code + ' ' + p.desc + ' ' + p.p10).toLowerCase())}">
+              <td class="px-3 py-2 font-mono">${esc(p.code)}</td>
+              <td class="px-3 py-2">${esc(p.desc)}</td>
+              <td class="px-3 py-2 font-mono text-xs text-slate-600">${esc(p.p10)}</td>
+              <td class="px-3 py-2 text-center">${esc(p.status)}</td>
+              <td class="px-3 py-2 text-right">${fmtCurr(p.price)}</td>
+            </tr>`).join('')}
+          </tbody></table></div>`}
+    </div>
+
+    <!-- Section 4: Excluded SKUs -->
+    <div id="promoSec4" class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-amber-600 text-sm">❌</span>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Excluded SKUs (${fmtNum(excludedDetail.length)})</h3>
+      </div>
+      ${excludedDetail.length === 0 ? '<p class="text-sm text-slate-400 italic">No excluded SKUs</p>' :
+        `<div class="overflow-x-auto max-h-[400px] overflow-y-auto"><table class="data-table w-full text-sm">
+          <thead><tr>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Tier</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Excluded Product Code</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Product Description</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Prodcat 10 Code</th>
+          </tr></thead>
+          <tbody>
+            ${excludedDetail.map(e => `<tr>
+              <td class="px-3 py-2">${e.tier}</td>
+              <td class="px-3 py-2 font-mono">${esc(e.code)}</td>
+              <td class="px-3 py-2">${esc(e.desc)}</td>
+              <td class="px-3 py-2 font-mono text-xs text-slate-600">${esc(e.p10)}</td>
+            </tr>`).join('')}
+          </tbody></table></div>`}
+    </div>
+  `;
+
+  // Table filter
+  const filterInput = document.getElementById('promoSec3Filter');
+  if (filterInput) {
+    filterInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      document.querySelectorAll('#promoSec3Body tr').forEach(tr => {
+        tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
+      });
+    });
+  }
+}
+
+function renderProduct(code) {
+  const el = document.getElementById('productResult');
+  if (!code) { el.innerHTML = ''; return; }
+  const p = state.productMap.get(code);
+  if (!p) {
+    el.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
+      <div class="text-4xl mb-3">🔎</div>Product code <span class="font-mono font-semibold text-slate-900">${esc(code)}</span> not found</div>`;
+    return;
+  }
+
+  const eligiblePromos = Array.from(state.productToPromos.get(code) || []);
+  const excludedPromos = Array.from(state.productToExclusions.get(code) || []);
+
+  // Enrich eligible promos with tier info
+  const eligibleRows = [];
+  for (const promo of eligiblePromos) {
+    // Find all (promo, tier) combos where this product is eligible
+    const tiersForProduct = state.expanded.filter(x => x.promo === promo && x.productCode === code);
+    const info = state.info.find(r => String(r['Promotion Code']).trim() === promo);
+    for (const t of tiersForProduct) {
+      eligibleRows.push({
+        promo, promoDesc: state.promoDesc.get(promo) || '',
+        tier: t.tier, prodcat: t.prodcatAssigned, uom: t.uom, minQty: t.minQty,
+        startDate: info?.['Promotion Start Date'] || '', endDate: info?.['Promotion End Date'] || '',
+      });
+    }
+  }
+  eligibleRows.sort((a,b) => a.promo.localeCompare(b.promo) || a.tier - b.tier);
+
+  const excludedRows = state.excl.filter(r => String(r['Excluded Product Code']).trim() === code)
+    .map(r => {
+      const promo = String(r['Promotion Code']).trim();
+      const info = state.info.find(x => String(x['Promotion Code']).trim() === promo);
+      return { promo, promoDesc: state.promoDesc.get(promo) || '', tier: r['Promo Index'],
+        startDate: info?.['Promotion Start Date'] || '', endDate: info?.['Promotion End Date'] || '' };
+    }).sort((a,b) => a.promo.localeCompare(b.promo));
+
+  el.innerHTML = `
+    <!-- Section: Product Info -->
+    <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-slate-400 text-sm">📋</span>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Product Info</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+        ${kv('Product Description', p['Product Description'])}
+        ${kv('Prodcat 10 Code', p['Prodcat 10 Code'])}
+        ${kv('Status', p['Status of the Product'])}
+        ${kv('Base Product', p['Base Product'])}
+        ${kv('BI UOM', p['BI UOM'])}
+        ${kv('Ex-Factory Price', p['Ex-Factory Price'] ? fmtCurr(parseFloat(p['Ex-Factory Price'])) : '–')}
+      </div>
+      <div class="flex flex-wrap gap-2 mt-5 pt-5 border-t border-slate-100">
+        <span class="metric-pill bg-emerald-50 text-emerald-800"># Promos Eligible: ${fmtNum(eligiblePromos.length)}</span>
+        <span class="metric-pill bg-amber-50 text-amber-800"># Promos Excluded: ${fmtNum(excludedPromos.length)}</span>
+      </div>
+    </div>
+
+    <!-- Eligible Promos -->
+    <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-emerald-600 text-sm">✅</span>
+          <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Eligible Promos (${fmtNum(eligibleRows.length)} tier rows)</h3>
+        </div>
+        ${eligibleRows.length > 10 ? `<input id="prodEligFilter" placeholder="Filter..." class="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-slate-400">` : ''}
+      </div>
+      ${eligibleRows.length === 0 ? '<p class="text-sm text-slate-400 italic">No eligible promos</p>' :
+        `<div class="overflow-x-auto max-h-[500px] overflow-y-auto"><table class="data-table w-full text-sm">
+          <thead><tr>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Promo Code</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Description</th>
+            <th class="text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Tier</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Start</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">End</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Prodcat Assigned</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">UOM</th>
+            <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Min Qty</th>
+          </tr></thead>
+          <tbody id="prodEligBody">
+            ${eligibleRows.map(r => `<tr data-search="${esc((r.promo + ' ' + r.promoDesc).toLowerCase())}">
+              <td class="px-3 py-2 font-mono font-medium">${esc(r.promo)}</td>
+              <td class="px-3 py-2">${esc(r.promoDesc)}</td>
+              <td class="px-3 py-2 text-center">${r.tier}</td>
+              <td class="px-3 py-2 text-xs">${esc(r.startDate)}</td>
+              <td class="px-3 py-2 text-xs">${esc(r.endDate)}</td>
+              <td class="px-3 py-2 font-mono text-xs">${esc(r.prodcat)}</td>
+              <td class="px-3 py-2">${esc(r.uom)}</td>
+              <td class="px-3 py-2 text-right">${fmtNum(r.minQty)}</td>
+            </tr>`).join('')}
+          </tbody></table></div>`}
+    </div>
+
+    <!-- Excluded Promos -->
+    <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-amber-600 text-sm">❌</span>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Excluded Promos (${fmtNum(excludedRows.length)})</h3>
+      </div>
+      ${excludedRows.length === 0 ? '<p class="text-sm text-slate-400 italic">No excluded promos</p>' :
+        `<div class="overflow-x-auto max-h-[400px] overflow-y-auto"><table class="data-table w-full text-sm">
+          <thead><tr>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Promo Code</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Description</th>
+            <th class="text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Tier</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Start</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">End</th>
+          </tr></thead>
+          <tbody>
+            ${excludedRows.map(r => `<tr>
+              <td class="px-3 py-2 font-mono font-medium">${esc(r.promo)}</td>
+              <td class="px-3 py-2">${esc(r.promoDesc)}</td>
+              <td class="px-3 py-2 text-center">${r.tier}</td>
+              <td class="px-3 py-2 text-xs">${esc(r.startDate)}</td>
+              <td class="px-3 py-2 text-xs">${esc(r.endDate)}</td>
+            </tr>`).join('')}
+          </tbody></table></div>`}
+    </div>
+  `;
+
+  const filterInput = document.getElementById('prodEligFilter');
+  if (filterInput) {
+    filterInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      document.querySelectorAll('#prodEligBody tr').forEach(tr => {
+        tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
+      });
+    });
+  }
+}
+
+function kv(label, value) {
+  return `<div class="flex gap-3">
+    <div class="kv-label w-40 flex-shrink-0">${esc(label)}:</div>
+    <div class="kv-value flex-1">${esc(value ?? '')}</div>
+  </div>`;
+}
+
+/* ============================================================
+   FILE UPLOAD FLOW
+   ============================================================ */
+async function handleFiles(fileList) {
+  const files = Array.from(fileList);
+  const classified = {};
+  const unmatched = [];
+  for (const f of files) {
+    const kind = classifyFile(f.name);
+    if (kind) classified[kind] = f; else unmatched.push(f.name);
+  }
+  const missing = ['info', 'assign', 'excl', 'product'].filter(k => !classified[k]);
+
+  if (missing.length > 0) {
+    Swal.fire({
+      icon: 'warning', title: 'Missing files',
+      html: `Need all 4 files:<br><br>` +
+        Object.entries(FILE_MAP).map(([k, re]) =>
+          `<div class="text-left font-mono text-sm">${classified[k] ? '✅' : '❌'} ${k.toUpperCase()} <span class="text-slate-400">— ${classified[k] ? esc(classified[k].name) : 'missing'}</span></div>`
+        ).join('') +
+        (unmatched.length ? `<br><div class="text-left text-xs text-slate-500">Unrecognized: ${unmatched.map(esc).join(', ')}</div>` : ''),
+      confirmButtonColor: '#1e293b',
+    });
+    return;
+  }
+
+  Swal.fire({ title: 'Parsing files...', html: '<div class="text-slate-500">Reading CSV data</div>',
+    allowOutsideClick: false, didOpen: () => Swal.showLoading(), showConfirmButton: false });
+
+  try {
+    state.info    = await parseFile(classified.info);
+    state.assign  = await parseFile(classified.assign);
+    state.excl    = await parseFile(classified.excl);
+    state.product = await parseFile(classified.product);
+
+    Swal.update({ html: '<div class="text-slate-500">Expanding prodcat assignments & applying exclusions...</div>' });
+    await new Promise(r => setTimeout(r, 50));
+    buildIndexes();
+
+    Swal.update({ html: '<div class="text-slate-500">Saving to browser storage...</div>' });
+    await idbSet('raw', {
+      info: state.info, assign: state.assign, excl: state.excl, product: state.product,
+      savedAt: new Date().toISOString(),
+    });
+
+    Swal.close();
+    showApp();
+
+    Swal.fire({
+      icon: 'success', title: 'Data loaded',
+      html: `<div class="text-left text-sm space-y-1">
+        <div><b>${fmtNum(state.info.length)}</b> promotions</div>
+        <div><b>${fmtNum(state.product.length)}</b> products</div>
+        <div><b>${fmtNum(state.assign.length)}</b> assignment lines</div>
+        <div><b>${fmtNum(state.excl.length)}</b> exclusion lines</div>
+        <div class="pt-2 mt-2 border-t border-slate-200">
+          <b>${fmtNum(state.expanded.length)}</b> eligible (promo × SKU) pairs<br>
+          <span class="text-slate-500">${fmtNum(state.removedByExcl)} pairs removed by exclusion</span><br>
+          <span class="text-amber-600">${fmtNum(state.missingProdcat.length)} prodcat lines with no SKU match</span>
+        </div>
+      </div>`,
+      confirmButtonColor: '#1e293b', timer: 4000, timerProgressBar: true,
+    });
+  } catch (err) {
+    Swal.fire({ icon: 'error', title: 'Failed to parse', text: err.message, confirmButtonColor: '#1e293b' });
+  }
+}
+
+function showApp() {
+  document.getElementById('dropZoneWrap').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('btnClear').classList.remove('hidden');
+  document.getElementById('btnExportLight').classList.remove('hidden');
+  document.getElementById('btnExportFull').classList.remove('hidden');
+
+  document.getElementById('statPromos').textContent = fmtNum(state.info.length);
+  document.getElementById('statProducts').textContent = fmtNum(state.product.length);
+  document.getElementById('statAssign').textContent = fmtNum(state.assign.length);
+  document.getElementById('statExcl').textContent = fmtNum(state.excl.length);
+  document.getElementById('statExpanded').textContent = fmtNum(state.expanded.length);
+  document.getElementById('dataStatus').textContent =
+    `${fmtNum(state.info.length)} promos · ${fmtNum(state.product.length)} products loaded`;
+
+  // Populate datalists
+  const promoList = document.getElementById('promoList');
+  promoList.innerHTML = state.info.map(r => {
+    const code = esc(String(r['Promotion Code']).trim());
+    const desc = esc((r['Promotion Description'] || '').substring(0, 50));
+    return `<option value="${code}">${desc}</option>`;
+  }).join('');
+
+  const productList = document.getElementById('productList');
+  productList.innerHTML = Array.from(state.productMap.entries()).map(([code, p]) => {
+    const desc = esc((p['Product Description'] || '').substring(0, 50));
+    return `<option value="${esc(code)}">${desc}</option>`;
+  }).join('');
+}
+
+/* ============================================================
+   EXCEL EXPORT
+   ============================================================ */
+async function exportExcel(includeDetail) {
+  Swal.fire({ title: 'Building Excel workbook...',
+    html: '<div class="text-slate-500">This may take a moment</div>',
+    allowOutsideClick: false, didOpen: () => Swal.showLoading(), showConfirmButton: false });
+
+  await new Promise(r => setTimeout(r, 50));
+
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // README
+    const readme = [
+      ['Master Promotion – Product Assignment'],
+      [`Generated: ${new Date().toLocaleString()}`],
+      [`Mode: ${includeDetail ? 'FULL (with Promo_Product_Detail)' : 'LIGHT (without Promo_Product_Detail)'}`],
+      [],
+      ['Sheet', 'Grain', 'Purpose'],
+      ['Promo_Header', '1 row / Promotion', 'ภาพรวมโปรทั้งหมด'],
+      ['Promo_Tier_Detail', '1 row / (Promo × Tier × Prodcat)', 'เงื่อนไขซื้อแต่ละ tier'],
+      ['Product_Summary', '1 row / Product', 'ดู SKU เป็นตัวตั้ง'],
+      ...(includeDetail ? [['Promo_Product_Detail', '1 row / (Promo × Tier × SKU)', 'ตารางแม่ SKU-level (หัก Excluded แล้ว)']] : []),
+      ['Promo_Excluded_Detail', '1 row / (Promo × Excluded SKU)', 'SKU ที่ถูกยกเว้น'],
+      ['Data_Quality', '1 row / Issue', 'Orphan promos, missing prodcat expansion'],
+      [],
+      ['Stats'],
+      [`Total Promotions: ${state.info.length}`],
+      [`Total Products: ${state.product.length}`],
+      [`Total Tier lines: ${state.tierDetail.length}`],
+      [`Total Eligible (Promo × SKU) pairs: ${state.expanded.length}`],
+      [`SKUs removed by Excluded rule: ${state.removedByExcl}`],
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(readme), 'README');
+
+    // Promo_Header
+    const promoHeaderRows = state.info.map(r => {
+      const code = String(r['Promotion Code']).trim();
+      const tiers = new Set(state.tierDetail.filter(t => t.promo === code).map(t => t.tier)).size;
+      const eligible = (state.promoToProducts.get(code) || new Set()).size;
+      const excluded = state.excl.filter(e => String(e['Promotion Code']).trim() === code).length;
+      return {
+        'Promotion Code': code, 'Promotion Description': r['Promotion Description'],
+        'T-Plan Number': r['T-Plan Number'], 'Start Date': r['Promotion Start Date'],
+        'End Date': r['Promotion End Date'], 'Type': r['Type'], 'Category': r['Category'],
+        'Buy Type': r['Buy Type'], 'Buy UOM': r['Buy UOM'], 'Claim Type': r['Claim Type'],
+        'Budget': parseFloat(r['Budget']) || 0, 'Scheme Flags': schemeFlags(r),
+        'Status': r['Status'], 'Notes': r['Notes'], 'Approval Reference': r['Approval Reference'],
+        '# Tiers': tiers, '# Eligible SKUs': eligible, '# Excluded SKUs': excluded,
+      };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(promoHeaderRows), 'Promo_Header');
+
+    // Promo_Tier_Detail
+    const tierRows = state.tierDetail.map(t => ({
+      'Promotion Code': t.promo, 'Promotion Description': t.promoDesc,
+      'Promo Index': t.tier, 'Prodcat Level': t.level, 'Prodcat Code': t.prodcat,
+      'UOM': t.uom, 'Min Qty': t.minQty, 'Must': t.must,
+      '# Eligible SKUs (after exclude)': t.skuCount,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tierRows), 'Promo_Tier_Detail');
+
+    // Product_Summary
+    const productRows = state.product.map(p => {
+      const code = String(p['Product Code']).trim();
+      const eligible = (state.productToPromos.get(code) || new Set()).size;
+      const excluded = (state.productToExclusions.get(code) || new Set()).size;
+      return {
+        'Product Code': code, 'Product Description': p['Product Description'],
+        'Prodcat 10 Code': p['Prodcat 10 Code'], 'Product Status': p['Status of the Product'],
+        'Base Product': p['Base Product'], 'BI UOM': p['BI UOM'],
+        'Ex-Factory Price': parseFloat(p['Ex-Factory Price']) || 0,
+        '# Promos Eligible': eligible, '# Promos Excluded': excluded,
+      };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productRows), 'Product_Summary');
+
+    // Promo_Product_Detail (only in Full mode)
+    if (includeDetail) {
+      Swal.update({ html: '<div class="text-slate-500">Building Promo_Product_Detail (large sheet)...</div>' });
+      await new Promise(r => setTimeout(r, 50));
+      const detailRows = state.expanded.map(x => {
+        const p = state.productMap.get(x.productCode) || {};
+        return {
+          'Promotion Code': x.promo, 'Promotion Description': state.promoDesc.get(x.promo) || '',
+          'Promo Index': x.tier, 'Prodcat Level': x.level,
+          'Prodcat Code (Assigned)': x.prodcatAssigned,
+          'UOM': x.uom, 'Min Qty': x.minQty, 'Must': x.must,
+          'Product Code': x.productCode, 'Product Description': p['Product Description'] || '',
+          'Prodcat 10 Code': p['Prodcat 10 Code'] || '', 'Product Status': p['Status of the Product'] || '',
+          'Ex-Factory Price': parseFloat(p['Ex-Factory Price']) || 0,
+        };
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailRows), 'Promo_Product_Detail');
+    }
+
+    // Promo_Excluded_Detail
+    const excludedRows = state.excl.map(r => {
+      const code = String(r['Excluded Product Code']).trim();
+      const p = state.productMap.get(code) || {};
+      const promo = String(r['Promotion Code']).trim();
+      return {
+        'Promotion Code': promo, 'Promotion Description': state.promoDesc.get(promo) || '',
+        'Promo Index': r['Promo Index'], 'Excluded Product Code': code,
+        'Product Description': p['Product Description'] || '',
+        'Prodcat 10 Code': p['Prodcat 10 Code'] || '',
+      };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(excludedRows), 'Promo_Excluded_Detail');
+
+    // Data_Quality
+    const infoP = new Set(state.info.map(r => String(r['Promotion Code']).trim()));
+    const assignP = new Set(state.assign.map(r => String(r['Promotion Code']).trim()));
+    const exclP = new Set(state.excl.map(r => String(r['Promotion Code']).trim()));
+    const dqRows = [];
+    Array.from(infoP).filter(p => !assignP.has(p) && !exclP.has(p)).forEach(p =>
+      dqRows.push({ Issue: 'Promo in INFO but no ASSIGN and no EXCL', 'Promotion Code': p, Detail: '' }));
+    Array.from(assignP).filter(p => !infoP.has(p)).forEach(p =>
+      dqRows.push({ Issue: 'Promo in ASSIGN but not in INFO', 'Promotion Code': p, Detail: '' }));
+    Array.from(exclP).filter(p => !infoP.has(p)).forEach(p =>
+      dqRows.push({ Issue: 'Promo in EXCL but not in INFO', 'Promotion Code': p, Detail: '' }));
+    state.missingProdcat.forEach(m =>
+      dqRows.push({ Issue: 'Prodcat Code assigned but no SKU found', 'Promotion Code': m.promo,
+        Detail: `Tier=${m.tier}, Level=${m.level}, Code=${m.prodcat}` }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dqRows.length ? dqRows : [{Issue:'None', 'Promotion Code':'', Detail:'All clean'}]), 'Data_Quality');
+
+    Swal.update({ html: '<div class="text-slate-500">Writing file...</div>' });
+    await new Promise(r => setTimeout(r, 50));
+
+    const ts = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const suffix = includeDetail ? 'Full' : 'Light';
+    XLSX.writeFile(wb, `Master_Promo_Product_Assignment_${ts}_${suffix}.xlsx`);
+
+    Swal.fire({ icon: 'success', title: 'Excel exported', timer: 2000, timerProgressBar: true,
+      showConfirmButton: false });
+  } catch (err) {
+    Swal.fire({ icon: 'error', title: 'Export failed', text: err.message, confirmButtonColor: '#1e293b' });
+  }
+}
+
+/* ============================================================
+   RESTORE FROM INDEXEDDB
+   ============================================================ */
+async function tryRestore() {
+  try {
+    const saved = await idbGet('raw');
+    if (!saved || !saved.info) return false;
+
+    const result = await Swal.fire({
+      icon: 'question', title: 'Restore previous session?',
+      html: `<div class="text-sm text-slate-600">Data saved on <b>${new Date(saved.savedAt).toLocaleString()}</b><br><br>
+        ${fmtNum(saved.info.length)} promos · ${fmtNum(saved.product.length)} products</div>`,
+      showCancelButton: true, confirmButtonText: 'Restore', cancelButtonText: 'Fresh start',
+      confirmButtonColor: '#1e293b', cancelButtonColor: '#94a3b8',
+    });
+
+    if (result.isConfirmed) {
+      Swal.fire({ title: 'Restoring...', allowOutsideClick: false, didOpen: () => Swal.showLoading(), showConfirmButton: false });
+      state.info = saved.info; state.assign = saved.assign; state.excl = saved.excl; state.product = saved.product;
+      buildIndexes();
+      Swal.close();
+      showApp();
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.warn('Restore failed:', e);
+    return false;
+  }
+}
+
+/* ============================================================
+   EVENT HANDLERS
+   ============================================================ */
+document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', (e) => handleFiles(e.target.files));
+
+const dropZone = document.getElementById('dropZone');
+['dragenter', 'dragover'].forEach(ev => dropZone.addEventListener(ev, (e) => {
+  e.preventDefault(); e.stopPropagation(); dropZone.classList.add('drop-zone-active');
+}));
+['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, (e) => {
+  e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('drop-zone-active');
+}));
+dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('tab-active'); b.classList.add('tab-inactive'); });
+    btn.classList.remove('tab-inactive'); btn.classList.add('tab-active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    document.getElementById('tab' + btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)).classList.remove('hidden');
+  });
+});
+
+// Search inputs
+document.getElementById('promoSearch').addEventListener('input', (e) => renderPromo(e.target.value.trim()));
+document.getElementById('productSearch').addEventListener('input', (e) => renderProduct(e.target.value.trim()));
+
+// Export
+document.getElementById('btnExportFull').addEventListener('click', () => exportExcel(true));
+document.getElementById('btnExportLight').addEventListener('click', () => exportExcel(false));
+
+// Reupload
+document.getElementById('btnReupload').addEventListener('click', () => document.getElementById('fileInput').click());
+
+// Clear
+document.getElementById('btnClear').addEventListener('click', async () => {
+  const result = await Swal.fire({
+    icon: 'warning', title: 'Clear all data?',
+    text: 'This will remove all uploaded data from browser storage. You will need to upload again.',
+    showCancelButton: true, confirmButtonText: 'Clear', cancelButtonText: 'Cancel',
+    confirmButtonColor: '#dc2626', cancelButtonColor: '#94a3b8',
+  });
+  if (result.isConfirmed) {
+    await idbClear();
+    location.reload();
+  }
+});
+
+// Boot: try restore on load
+window.addEventListener('DOMContentLoaded', tryRestore);
+</script>
+</body>
+</html>
