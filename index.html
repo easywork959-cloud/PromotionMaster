@@ -115,6 +115,7 @@
   <div class="flex gap-2 mb-6">
     <button class="tab-btn tab-active px-5 py-2.5 rounded-lg text-sm font-medium transition" data-tab="promo">🔍 Promo Lookup</button>
     <button class="tab-btn tab-inactive px-5 py-2.5 rounded-lg text-sm font-medium transition" data-tab="product">🔎 Product Lookup</button>
+    <button class="tab-btn tab-inactive px-5 py-2.5 rounded-lg text-sm font-medium transition" data-tab="dateFilter">📅 Date Filter</button>
   </div>
 
   <!-- PROMO LOOKUP TAB -->
@@ -128,8 +129,62 @@
     <div id="promoResult"></div>
   </section>
 
-  <!-- PRODUCT LOOKUP TAB -->
-  <section id="tabProduct" class="tab-panel hidden">
+  <!-- DATE FILTER TAB -->
+  <section id="tabDateFilter" class="tab-panel hidden">
+    <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+      <!-- Match mode -->
+      <div class="mb-5">
+        <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Match On</label>
+        <div class="flex gap-4 text-sm">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="matchMode" value="either" checked class="text-slate-900 focus:ring-slate-500">
+            <span>Either (Start OR End)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="matchMode" value="start" class="text-slate-900 focus:ring-slate-500">
+            <span>Start Date only</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="matchMode" value="end" class="text-slate-900 focus:ring-slate-500">
+            <span>End Date only</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Quick presets -->
+      <div class="mb-5">
+        <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Quick Presets</label>
+        <div id="dfPresets" class="flex flex-wrap gap-2 text-xs"></div>
+      </div>
+
+      <!-- Month grid -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-medium text-slate-500 uppercase tracking-wide">Select Months</label>
+          <span id="dfSelectedCount" class="text-xs text-slate-500">0 months selected</span>
+        </div>
+        <div id="dfMonthGrid" class="space-y-2 max-h-80 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50"></div>
+      </div>
+    </div>
+
+    <!-- Results summary + Missing note -->
+    <div id="dfSummary" class="bg-white rounded-xl border border-slate-200 p-4 mb-4 hidden">
+      <div class="flex items-center justify-between">
+        <div class="text-sm">
+          <span class="font-semibold text-slate-900" id="dfResultCount">0</span>
+          <span class="text-slate-500">promos matched</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="dfResultFilter" placeholder="Filter results..." class="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-slate-400">
+          <button id="dfExportList" class="px-3 py-1.5 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition">Export list</button>
+        </div>
+      </div>
+      <div id="dfMissingNote" class="mt-2 text-xs text-amber-700 hidden"></div>
+    </div>
+
+    <!-- Results table -->
+    <div id="dfResults"></div>
+  </section>
     <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
       <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Product Code</label>
       <input id="productSearch" list="productList" placeholder="Type or select a product code..."
@@ -798,6 +853,9 @@ function showApp() {
     const desc = esc((p['Product Description'] || '').substring(0, 50));
     return `<option value="${esc(code)}">${desc}</option>`;
   }).join('');
+
+  // Initialize date filter tab
+  initDateFilterTab();
 }
 
 /* ============================================================
@@ -1434,6 +1492,347 @@ function kvRow(ws, row, label, value, subColor) {
   const lastCol = ws.columns.length;
   ws.mergeCells(row, 2, row, lastCol);
 }
+
+/* ============================================================
+   DATE FILTER TAB
+   ============================================================ */
+const dfState = {
+  mode: 'either',
+  selectedMonths: new Set(),
+  results: [],
+  missingCount: 0,
+  sortKey: 'endDate',
+  sortDir: 'asc',
+  yearsMonths: null,
+};
+
+function parseDate(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  const m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (!m) return null;
+  const y = parseInt(m[1]), mo = parseInt(m[2]), d = parseInt(m[3]);
+  if (y < 1900 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return { y, m: mo, d, key: `${y}-${String(mo).padStart(2, '0')}` };
+}
+
+function scanAvailableMonths() {
+  const yearMonths = new Map();
+  for (const r of state.info) {
+    const s = parseDate(r['Promotion Start Date']);
+    const e = parseDate(r['Promotion End Date']);
+    for (const d of [s, e]) {
+      if (!d) continue;
+      if (!yearMonths.has(d.y)) yearMonths.set(d.y, new Set());
+      yearMonths.get(d.y).add(d.m);
+    }
+  }
+  dfState.yearsMonths = yearMonths;
+}
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function renderMonthGrid() {
+  const el = document.getElementById('dfMonthGrid');
+  if (!dfState.yearsMonths || dfState.yearsMonths.size === 0) {
+    el.innerHTML = '<div class="py-4 text-center text-sm text-slate-400 italic">No dates found in data</div>';
+    return;
+  }
+  const years = Array.from(dfState.yearsMonths.keys()).sort((a, b) => b - a);
+  el.innerHTML = years.map(y => {
+    const available = dfState.yearsMonths.get(y);
+    return `<div class="flex items-center gap-3 py-1">
+      <div class="w-14 text-sm font-semibold text-slate-700 flex-shrink-0">${y}</div>
+      <div class="flex flex-wrap gap-1 flex-1">
+        ${MONTH_NAMES.map((mn, i) => {
+          const monthNum = i + 1;
+          const key = `${y}-${String(monthNum).padStart(2, '0')}`;
+          const isAvailable = available.has(monthNum);
+          const isSelected = dfState.selectedMonths.has(key);
+          if (!isAvailable) {
+            return `<div class="px-2.5 py-1 text-xs text-slate-300 rounded border border-transparent min-w-[3rem] text-center">${mn}</div>`;
+          }
+          const cls = isSelected
+            ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-700'
+            : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400';
+          return `<button data-month="${key}" class="df-month-btn px-2.5 py-1 text-xs font-medium border rounded transition min-w-[3rem] ${cls}">${mn}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.df-month-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.month;
+      if (dfState.selectedMonths.has(key)) dfState.selectedMonths.delete(key);
+      else dfState.selectedMonths.add(key);
+      renderMonthGrid();
+      updateSelectedCount();
+      applyDateFilter();
+    });
+  });
+}
+
+function updateSelectedCount() {
+  document.getElementById('dfSelectedCount').textContent =
+    `${dfState.selectedMonths.size} month${dfState.selectedMonths.size === 1 ? '' : 's'} selected`;
+}
+
+function rollMonths(y, m, from, to) {
+  const arr = [];
+  for (let i = from; i < to; i++) {
+    let ny = y, nm = m + i;
+    while (nm < 1) { nm += 12; ny -= 1; }
+    while (nm > 12) { nm -= 12; ny += 1; }
+    arr.push(`${ny}-${String(nm).padStart(2,'0')}`);
+  }
+  return arr;
+}
+
+function renderPresets() {
+  const now = new Date();
+  const curY = now.getFullYear(), curM = now.getMonth() + 1;
+  const nextY = curY + 1;
+  const presets = [
+    { label: `Q1 ${curY}`, months: [1,2,3].map(m => `${curY}-${String(m).padStart(2,'0')}`) },
+    { label: `Q2 ${curY}`, months: [4,5,6].map(m => `${curY}-${String(m).padStart(2,'0')}`) },
+    { label: `Q3 ${curY}`, months: [7,8,9].map(m => `${curY}-${String(m).padStart(2,'0')}`) },
+    { label: `Q4 ${curY}`, months: [10,11,12].map(m => `${curY}-${String(m).padStart(2,'0')}`) },
+    { label: `Q1 ${nextY}`, months: [1,2,3].map(m => `${nextY}-${String(m).padStart(2,'0')}`) },
+    { label: `Q2 ${nextY}`, months: [4,5,6].map(m => `${nextY}-${String(m).padStart(2,'0')}`) },
+    { label: 'This month', months: [`${curY}-${String(curM).padStart(2,'0')}`] },
+    { label: 'Next 3M', months: rollMonths(curY, curM, 0, 3) },
+    { label: 'Last 3M', months: rollMonths(curY, curM, -3, 0) },
+  ];
+  const el = document.getElementById('dfPresets');
+  el.innerHTML = presets.map((p, i) =>
+    `<button data-preset="${i}" class="df-preset-btn px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded transition font-medium">${esc(p.label)}</button>`
+  ).join('') + `<button id="dfClearBtn" class="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded transition font-medium">Clear</button>`;
+
+  el.querySelectorAll('.df-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = presets[parseInt(btn.dataset.preset)];
+      dfState.selectedMonths = new Set(p.months);
+      renderMonthGrid(); updateSelectedCount(); applyDateFilter();
+    });
+  });
+  document.getElementById('dfClearBtn').addEventListener('click', () => {
+    dfState.selectedMonths.clear();
+    renderMonthGrid(); updateSelectedCount(); applyDateFilter();
+  });
+}
+
+function applyDateFilter() {
+  if (dfState.selectedMonths.size === 0) {
+    dfState.results = []; dfState.missingCount = 0;
+    document.getElementById('dfSummary').classList.add('hidden');
+    document.getElementById('dfResults').innerHTML = '';
+    return;
+  }
+  const results = [];
+  let missing = 0;
+  const selected = dfState.selectedMonths;
+  const mode = dfState.mode;
+
+  for (const r of state.info) {
+    const code = String(r['Promotion Code']).trim();
+    if (!code) continue;
+    const s = parseDate(r['Promotion Start Date']);
+    const e = parseDate(r['Promotion End Date']);
+    if (!s || !e) { missing++; continue; }
+    let match = false;
+    if (mode === 'start') match = selected.has(s.key);
+    else if (mode === 'end') match = selected.has(e.key);
+    else match = selected.has(s.key) || selected.has(e.key);
+    if (match) {
+      const eligible = (state.promoToProducts.get(code) || new Set()).size;
+      const excluded = state.excl.filter(x => String(x['Promotion Code']).trim() === code).length;
+      results.push({
+        code, description: r['Promotion Description'] || '',
+        type: r['Type'] || '', category: r['Category'] || '',
+        startDate: r['Promotion Start Date'] || '', endDate: r['Promotion End Date'] || '',
+        status: r['Status'] || '', eligible, excluded,
+      });
+    }
+  }
+
+  dfState.results = results;
+  dfState.missingCount = missing;
+  document.getElementById('dfSummary').classList.remove('hidden');
+  document.getElementById('dfResultCount').textContent = fmtNum(results.length);
+  const missingEl = document.getElementById('dfMissingNote');
+  if (missing > 0) {
+    missingEl.textContent = `⚠️ ${fmtNum(missing)} promo${missing > 1 ? 's' : ''} excluded from results — missing Start or End Date`;
+    missingEl.classList.remove('hidden');
+  } else missingEl.classList.add('hidden');
+  renderDateFilterResults();
+}
+
+function renderDateFilterResults() {
+  const el = document.getElementById('dfResults');
+  if (dfState.results.length === 0) {
+    el.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">No promos match the selected months and match mode</div>`;
+    return;
+  }
+  const filterQ = (document.getElementById('dfResultFilter')?.value || '').toLowerCase().trim();
+  let rows = filterQ ? dfState.results.filter(r => r.code.toLowerCase().includes(filterQ) || r.description.toLowerCase().includes(filterQ)) : dfState.results.slice();
+  const dir = dfState.sortDir === 'asc' ? 1 : -1;
+  rows.sort((a, b) => {
+    const av = a[dfState.sortKey], bv = b[dfState.sortKey];
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+    return String(av).localeCompare(String(bv)) * dir;
+  });
+  const si = (k) => dfState.sortKey === k ? (dfState.sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+  el.innerHTML = `
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+        <table class="data-table w-full text-sm">
+          <thead><tr>
+            <th data-sort="code" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">Promo Code${si('code')}</th>
+            <th data-sort="description" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">Description${si('description')}</th>
+            <th data-sort="type" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">Type${si('type')}</th>
+            <th data-sort="category" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">Category${si('category')}</th>
+            <th data-sort="startDate" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">Start${si('startDate')}</th>
+            <th data-sort="endDate" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">End${si('endDate')}</th>
+            <th data-sort="status" class="df-sort text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">Status${si('status')}</th>
+            <th data-sort="eligible" class="df-sort text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100"># Elig${si('eligible')}</th>
+            <th data-sort="excluded" class="df-sort text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100"># Excl${si('excluded')}</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(r => `<tr class="df-row cursor-pointer" data-code="${esc(r.code)}">
+              <td class="px-3 py-2 font-mono font-medium text-slate-900">${esc(r.code)}</td>
+              <td class="px-3 py-2">${esc(r.description)}</td>
+              <td class="px-3 py-2">${esc(r.type)}</td>
+              <td class="px-3 py-2">${esc(r.category)}</td>
+              <td class="px-3 py-2 text-xs">${esc(r.startDate)}</td>
+              <td class="px-3 py-2 text-xs">${esc(r.endDate)}</td>
+              <td class="px-3 py-2 text-center">${esc(r.status)}</td>
+              <td class="px-3 py-2 text-right">${fmtNum(r.eligible)}</td>
+              <td class="px-3 py-2 text-right">${fmtNum(r.excluded)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="text-xs text-slate-400 italic mt-2">💡 Click any row to view details in Promo Lookup tab</p>
+  `;
+  el.querySelectorAll('.df-sort').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.sort;
+      if (dfState.sortKey === k) dfState.sortDir = dfState.sortDir === 'asc' ? 'desc' : 'asc';
+      else { dfState.sortKey = k; dfState.sortDir = 'asc'; }
+      renderDateFilterResults();
+    });
+  });
+  el.querySelectorAll('.df-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const code = tr.dataset.code;
+      document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('tab-active'); b.classList.add('tab-inactive'); });
+      const promoBtn = document.querySelector('.tab-btn[data-tab="promo"]');
+      promoBtn.classList.remove('tab-inactive'); promoBtn.classList.add('tab-active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('tabPromo').classList.remove('hidden');
+      document.getElementById('promoSearch').value = code;
+      renderPromo(code);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+}
+
+async function exportDateFilterList() {
+  if (dfState.results.length === 0) {
+    Swal.fire({ icon: 'info', title: 'No results to export',
+      text: 'Select at least one month with matching promos first.',
+      confirmButtonColor: '#1e293b' });
+    return;
+  }
+  Swal.fire({ title: 'Building Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading(), showConfirmButton: false });
+  await new Promise(r => setTimeout(r, 50));
+  try {
+    const wb = new ExcelJS.Workbook();
+    const NAVY = 'FF1E293B';
+    const ws = wb.addWorksheet('Filtered Promos', { views: [{ state: 'frozen', ySplit: 3 }] });
+    ws.columns = [
+      { width: 14 }, { width: 45 }, { width: 8 }, { width: 12 },
+      { width: 13 }, { width: 13 }, { width: 10 }, { width: 15 }, { width: 15 },
+    ];
+    const t = ws.getCell('A1');
+    t.value = `Filtered Promos — ${dfState.results.length} results`;
+    t.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Arial' };
+    t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    t.alignment = { vertical: 'middle', indent: 1 };
+    ws.mergeCells('A1:I1');
+    ws.getRow(1).height = 26;
+
+    const modeLabel = { either: 'Either (Start OR End)', start: 'Start Date only', end: 'End Date only' }[dfState.mode];
+    const monthsSorted = Array.from(dfState.selectedMonths).sort();
+    ws.getCell('A2').value = `Match: ${modeLabel}  ·  Months: ${monthsSorted.join(', ')}  ·  Generated: ${new Date().toLocaleString()}`;
+    ws.getCell('A2').font = { italic: true, size: 9, color: { argb: 'FF64748B' }, name: 'Arial' };
+    ws.mergeCells('A2:I2');
+
+    ['Promo Code','Description','Type','Category','Start Date','End Date','Status','# Eligible SKUs','# Excluded SKUs'].forEach((h, i) => {
+      const c = ws.getCell(3, i + 1);
+      c.value = h;
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Arial' };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    });
+    ws.getRow(3).height = 22;
+
+    const dir = dfState.sortDir === 'asc' ? 1 : -1;
+    const rows = dfState.results.slice().sort((a, b) => {
+      const av = a[dfState.sortKey], bv = b[dfState.sortKey];
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+    let r = 4;
+    for (const row of rows) {
+      ws.getCell(r, 1).value = row.code;
+      ws.getCell(r, 1).font = { name: 'Consolas', size: 10, bold: true };
+      ws.getCell(r, 2).value = row.description;
+      ws.getCell(r, 3).value = row.type;
+      ws.getCell(r, 4).value = row.category;
+      ws.getCell(r, 5).value = row.startDate;
+      ws.getCell(r, 6).value = row.endDate;
+      ws.getCell(r, 7).value = row.status;
+      ws.getCell(r, 7).alignment = { horizontal: 'center' };
+      ws.getCell(r, 8).value = row.eligible;
+      ws.getCell(r, 8).alignment = { horizontal: 'right' };
+      ws.getCell(r, 9).value = row.excluded;
+      ws.getCell(r, 9).alignment = { horizontal: 'right' };
+      r++;
+    }
+    ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: r - 1, column: 9 } };
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url; a.download = `Filtered_Promos_${ts}.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+    Swal.fire({ icon: 'success', title: 'Excel exported',
+      html: `<div class="text-sm text-slate-600">${dfState.results.length} promos exported</div>`,
+      timer: 2000, timerProgressBar: true, showConfirmButton: false });
+  } catch (err) {
+    console.error(err);
+    Swal.fire({ icon: 'error', title: 'Export failed', text: err.message });
+  }
+}
+
+function initDateFilterTab() {
+  scanAvailableMonths();
+  renderPresets();
+  renderMonthGrid();
+  updateSelectedCount();
+  applyDateFilter();
+  document.querySelectorAll('input[name="matchMode"]').forEach(radio => {
+    radio.addEventListener('change', (e) => { dfState.mode = e.target.value; applyDateFilter(); });
+  });
+  document.getElementById('dfResultFilter').addEventListener('input', () => renderDateFilterResults());
+  document.getElementById('dfExportList').addEventListener('click', exportDateFilterList);
+}
+
 async function tryRestore() {
   try {
     const saved = await idbGet('raw');
