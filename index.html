@@ -29,12 +29,12 @@
 
 <!-- HEADER -->
 <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-    <div>
-      <h1 class="text-xl font-semibold text-slate-900">Master Promo–Product Assignment</h1>
-      <p id="dataStatus" class="text-xs text-slate-500 mt-0.5">No data loaded</p>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+    <div class="min-w-0 flex-1">
+      <h1 class="text-sm sm:text-xl font-semibold text-slate-900 truncate">Master Promo–Product Assignment</h1>
+      <p id="dataStatus" class="text-xs text-slate-500 mt-0.5 truncate">No data loaded</p>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 flex-shrink-0">
       <button id="btnClear" class="hidden px-3 py-2 text-sm font-medium text-slate-600 hover:text-red-600 rounded-lg transition" title="Clear all data">
         Clear
       </button>
@@ -66,33 +66,36 @@
   </div>
 </header>
 
-<main class="max-w-7xl mx-auto px-6 py-8">
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
 
 <!-- DROP ZONE (before data loaded) -->
-<div id="dropZoneWrap" class="mt-8">
-  <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-2xl bg-white p-16 text-center hover:border-slate-400 transition cursor-pointer">
-    <div class="text-5xl mb-4">📂</div>
-    <h2 class="text-lg font-semibold text-slate-900 mb-2">Drop 4 CSV files here</h2>
-    <p class="text-sm text-slate-500 mb-6">or click to browse</p>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto text-left">
-      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+<div id="dropZoneWrap" class="mt-4 sm:mt-8">
+  <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-2xl bg-white p-6 sm:p-16 text-center hover:border-slate-400 transition">
+    <div class="text-4xl sm:text-5xl mb-3 sm:mb-4">📂</div>
+    <h2 class="text-base sm:text-lg font-semibold text-slate-900 mb-2">Drop 4 CSV files here</h2>
+    <p class="text-xs sm:text-sm text-slate-500 mb-4 sm:mb-5">or use the button below</p>
+    <button id="btnBrowse" class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white hover:bg-slate-700 rounded-lg font-medium text-sm transition mb-6 sm:mb-8">
+      📁 Browse Files
+    </button>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 max-w-3xl mx-auto text-left">
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
         <div class="text-xs font-mono text-slate-500">Expected files:</div>
         <div class="text-xs font-medium text-slate-700 mt-1">PROMO_INFO.csv</div>
       </div>
-      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
-        <div class="text-xs font-mono text-slate-500">&nbsp;</div>
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <div class="text-xs font-mono text-slate-500 sm:invisible">Expected files:</div>
         <div class="text-xs font-medium text-slate-700 mt-1">PROMO_PRDASSIGN.csv</div>
       </div>
-      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
-        <div class="text-xs font-mono text-slate-500">&nbsp;</div>
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <div class="text-xs font-mono text-slate-500 sm:invisible">Expected files:</div>
         <div class="text-xs font-medium text-slate-700 mt-1">PROMO_PRDEXCLUDED.csv</div>
       </div>
-      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
-        <div class="text-xs font-mono text-slate-500">&nbsp;</div>
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <div class="text-xs font-mono text-slate-500 sm:invisible">Expected files:</div>
         <div class="text-xs font-medium text-slate-700 mt-1">PRODUCT_INFO.csv</div>
       </div>
     </div>
-    <p class="text-xs text-slate-400 mt-6">Auto-detected by filename · UTF-16 / UTF-8 supported · Data saved in browser (IndexedDB)</p>
+    <p class="text-xs text-slate-400 mt-4 sm:mt-6">Auto-detected by filename · UTF-16 / UTF-8 supported · Data saved in browser (IndexedDB)</p>
   </div>
   <input id="fileInput" type="file" multiple accept=".csv" class="hidden">
 </div>
@@ -100,22 +103,22 @@
 <!-- APP (after data loaded) -->
 <div id="app" class="hidden">
   <!-- Data summary bar -->
-  <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex items-center justify-between text-sm">
-    <div class="flex items-center gap-6">
-      <div><span class="kv-label">Promotions:</span> <span id="statPromos" class="kv-value">0</span></div>
+  <div class="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
+    <div class="flex flex-wrap items-center gap-x-3 sm:gap-x-6 gap-y-1">
+      <div><span class="kv-label">Promos:</span> <span id="statPromos" class="kv-value">0</span></div>
       <div><span class="kv-label">Products:</span> <span id="statProducts" class="kv-value">0</span></div>
-      <div><span class="kv-label">Assignments:</span> <span id="statAssign" class="kv-value">0</span></div>
-      <div><span class="kv-label">Exclusions:</span> <span id="statExcl" class="kv-value">0</span></div>
-      <div><span class="kv-label">Expanded SKU pairs:</span> <span id="statExpanded" class="kv-value">0</span></div>
+      <div><span class="kv-label">Assign:</span> <span id="statAssign" class="kv-value">0</span></div>
+      <div><span class="kv-label">Excl:</span> <span id="statExcl" class="kv-value">0</span></div>
+      <div><span class="kv-label">Expanded:</span> <span id="statExpanded" class="kv-value">0</span></div>
     </div>
-    <button id="btnReupload" class="text-sm font-medium text-slate-600 hover:text-slate-900">+ Upload new data</button>
+    <button id="btnReupload" class="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 whitespace-nowrap">+ Upload new</button>
   </div>
 
   <!-- Tabs -->
-  <div class="flex gap-2 mb-6">
-    <button class="tab-btn tab-active px-5 py-2.5 rounded-lg text-sm font-medium transition" data-tab="promo">🔍 Promo Lookup</button>
-    <button class="tab-btn tab-inactive px-5 py-2.5 rounded-lg text-sm font-medium transition" data-tab="product">🔎 Product Lookup</button>
-    <button class="tab-btn tab-inactive px-5 py-2.5 rounded-lg text-sm font-medium transition" data-tab="dateFilter">📅 Date Filter</button>
+  <div class="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 -mx-1 px-1">
+    <button class="tab-btn tab-active px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0" data-tab="promo">🔍 Promo Lookup</button>
+    <button class="tab-btn tab-inactive px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0" data-tab="product">🔎 Product Lookup</button>
+    <button class="tab-btn tab-inactive px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0" data-tab="dateFilter">📅 Date Filter</button>
   </div>
 
   <!-- PROMO LOOKUP TAB -->
@@ -135,7 +138,7 @@
       <!-- Match mode -->
       <div class="mb-5">
         <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Match On</label>
-        <div class="flex gap-4 text-sm">
+        <div class="flex flex-wrap gap-3 sm:gap-4 text-sm">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="radio" name="matchMode" value="either" checked class="text-slate-900 focus:ring-slate-500">
             <span>Either (Start OR End)</span>
@@ -168,15 +171,15 @@
     </div>
 
     <!-- Results summary + Missing note -->
-    <div id="dfSummary" class="bg-white rounded-xl border border-slate-200 p-4 mb-4 hidden">
-      <div class="flex items-center justify-between">
+    <div id="dfSummary" class="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 mb-4 hidden">
+      <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="text-sm">
           <span class="font-semibold text-slate-900" id="dfResultCount">0</span>
           <span class="text-slate-500">promos matched</span>
         </div>
-        <div class="flex items-center gap-2">
-          <input id="dfResultFilter" placeholder="Filter results..." class="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-slate-400">
-          <button id="dfExportList" class="px-3 py-1.5 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition">Export list</button>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input id="dfResultFilter" placeholder="Filter results..." class="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-slate-400 w-40 sm:w-auto">
+          <button id="dfExportList" class="px-3 py-1.5 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition whitespace-nowrap">Export list</button>
         </div>
       </div>
       <div id="dfMissingNote" class="mt-2 text-xs text-amber-700 hidden"></div>
@@ -201,8 +204,8 @@
 </main>
 
 <!-- MULTISELECT MODAL -->
-<div id="selectModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+<div id="selectModal" class="hidden fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-slate-900/50 backdrop-blur-sm">
+  <div class="bg-white sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl h-full sm:h-auto sm:max-h-[85vh] flex flex-col overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
       <h2 id="selectModalTitle" class="text-lg font-semibold text-slate-900">Select items</h2>
       <button id="selectModalClose" class="text-slate-400 hover:text-slate-900 text-2xl leading-none">×</button>
@@ -1867,7 +1870,10 @@ async function tryRestore() {
 /* ============================================================
    EVENT HANDLERS
    ============================================================ */
-document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
+document.getElementById('btnBrowse').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('fileInput').click();
+});
 document.getElementById('fileInput').addEventListener('change', (e) => handleFiles(e.target.files));
 
 const dropZone = document.getElementById('dropZone');
