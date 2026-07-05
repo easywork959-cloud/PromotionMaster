@@ -43,13 +43,9 @@
           Export <span class="text-xs">▾</span>
         </button>
         <div id="exportMenu" class="hidden absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-50">
-          <button class="export-opt w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition" data-mode="full">
-            <div class="font-medium text-slate-900">Full workbook</div>
-            <div class="text-xs text-slate-500">All data + SKU detail + assignments</div>
-          </button>
           <button class="export-opt w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition" data-mode="light">
-            <div class="font-medium text-slate-900">Light workbook</div>
-            <div class="text-xs text-slate-500">Headers only, no large detail sheets</div>
+            <div class="font-medium text-slate-900">Workbook</div>
+            <div class="text-xs text-slate-500">All headers + summaries · respects Active filter</div>
           </button>
           <div class="border-t border-slate-100"></div>
           <button class="export-opt w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition" data-mode="selected-promo">
@@ -119,10 +115,30 @@
   </div>
 
   <!-- Tabs -->
-  <div class="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 -mx-1 px-1">
+  <div class="flex gap-2 mb-3 overflow-x-auto pb-1 -mx-1 px-1">
     <button class="tab-btn tab-active px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0" data-tab="promo">🔍 Promo Lookup</button>
     <button class="tab-btn tab-inactive px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0" data-tab="product">🔎 Product Lookup</button>
     <button class="tab-btn tab-inactive px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0" data-tab="dateFilter">📅 Date Filter</button>
+    <button class="tab-btn tab-inactive px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0" data-tab="assignment">📺 Assignment</button>
+    <button class="tab-btn tab-inactive px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0" data-tab="help">📖 Help & Playbook</button>
+  </div>
+
+  <!-- Global Filter Bar -->
+  <div id="filterBar" class="bg-white rounded-xl border border-slate-200 p-3 mb-4 sm:mb-6">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+      <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">🔍 Filter:</span>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" id="filterActivePromo" checked class="rounded border-slate-300 text-slate-900">
+        <span>Active Promos only</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" id="filterActiveProduct" checked class="rounded border-slate-300 text-slate-900">
+        <span>Active Products only</span>
+      </label>
+    </div>
+    <div id="filterStats" class="text-xs text-slate-500 mt-2"></div>
+    <div id="filterMissingNote" class="mt-2 text-xs text-amber-700 hidden"></div>
+    <div id="dataStalenessNote" class="mt-2 text-xs hidden"></div>
   </div>
 
   <!-- PROMO LOOKUP TAB -->
@@ -202,6 +218,35 @@
       <datalist id="productList"></datalist>
     </div>
     <div id="productResult"></div>
+  </section>
+
+  <!-- ASSIGNMENT LOOKUP TAB -->
+  <section id="tabAssignment" class="tab-panel hidden">
+    <div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 mb-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Type</label>
+          <select id="asnType" class="w-full px-4 py-3 text-base border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-100 transition bg-white">
+            <option value="channel">📺 Channel</option>
+            <option value="distributor">🏢 Distributor</option>
+            <option value="businessType">🏷️ Business Type</option>
+            <option value="customer">👥 Customer</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Code</label>
+          <input id="asnCode" list="asnCodeList" placeholder="Select or type a code..."
+            class="w-full px-4 py-3 text-base font-mono border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-100 transition">
+          <datalist id="asnCodeList"></datalist>
+        </div>
+      </div>
+    </div>
+    <div id="asnResult"></div>
+  </section>
+
+  <!-- HELP & PLAYBOOK TAB -->
+  <section id="tabHelp" class="tab-panel hidden">
+    <div id="helpAccordions" class="space-y-3"></div>
   </section>
 </div>
 
@@ -285,7 +330,8 @@ const state = {
   productToPromos: null,
   productToExclusions: null,
   tierDetail: null,
-  promoAssignments: null,  // Map<promoCode, {channels, distributors, businessTypes, customers}>
+  promoAssignments: null,
+  dataLoadedAt: null,
   removedByExcl: 0,
   missingProdcat: [],
 };
@@ -661,10 +707,27 @@ function renderPromo(code) {
       <div class="text-4xl mb-3">🔍</div>Promo code <span class="font-mono font-semibold text-slate-900">${esc(code)}</span> not found</div>`;
     return;
   }
+  // If Active filter is on and this promo is inactive, show recovery link
+  if (filterState.activePromo && !filterState.activePromoSet.has(code)) {
+    el.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
+      <div class="text-4xl mb-3">🔍</div>
+      <div class="mb-2">Promo <span class="font-mono font-semibold text-slate-900">${esc(code)}</span> exists but is <b>inactive</b> (Status ≠ A or not in date range)</div>
+      <button id="promoShowAll" class="mt-3 text-xs font-medium text-slate-700 hover:text-slate-900 underline">Show inactive promos → view this promo</button>
+    </div>`;
+    document.getElementById('promoShowAll').addEventListener('click', () => {
+      document.getElementById('filterActivePromo').checked = false;
+      onFilterChange();
+    });
+    return;
+  }
 
   const tiers = state.tierDetail.filter(r => r.promo === code);
-  const eligibleProducts = Array.from(state.promoToProducts.get(code) || []);
-  const excludedRows = state.excl.filter(r => String(r['Promotion Code']).trim() === code);
+  const eligibleProductsAll = Array.from(state.promoToProducts.get(code) || []);
+  const eligibleProducts = filterProducts(eligibleProductsAll);
+  const excludedRowsAll = state.excl.filter(r => String(r['Promotion Code']).trim() === code);
+  const excludedRows = filterState.activeProduct
+    ? excludedRowsAll.filter(r => isActiveProduct(String(r['Excluded Product Code']).trim()))
+    : excludedRowsAll;
   const numTiers = new Set(tiers.map(t => t.tier)).size;
 
   const productRows = eligibleProducts.map(pc => {
@@ -818,9 +881,24 @@ function renderProduct(code) {
       <div class="text-4xl mb-3">🔎</div>Product code <span class="font-mono font-semibold text-slate-900">${esc(code)}</span> not found</div>`;
     return;
   }
+  // Show all recovery if this product is inactive
+  if (filterState.activeProduct && !filterState.activeProductSet.has(code)) {
+    el.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
+      <div class="text-4xl mb-3">🔎</div>
+      <div class="mb-2">Product <span class="font-mono font-semibold text-slate-900">${esc(code)}</span> exists but is <b>inactive</b> (Status ≠ A)</div>
+      <button id="productShowAll" class="mt-3 text-xs font-medium text-slate-700 hover:text-slate-900 underline">Show inactive products → view this product</button>
+    </div>`;
+    document.getElementById('productShowAll').addEventListener('click', () => {
+      document.getElementById('filterActiveProduct').checked = false;
+      onFilterChange();
+    });
+    return;
+  }
 
-  const eligiblePromos = Array.from(state.productToPromos.get(code) || []);
-  const excludedPromos = Array.from(state.productToExclusions.get(code) || []);
+  const eligiblePromosAll = Array.from(state.productToPromos.get(code) || []);
+  const eligiblePromos = filterPromos(eligiblePromosAll);
+  const excludedPromosAll = Array.from(state.productToExclusions.get(code) || []);
+  const excludedPromos = filterPromos(excludedPromosAll);
 
   // Enrich eligible promos with tier info
   const eligibleRows = [];
@@ -839,6 +917,7 @@ function renderProduct(code) {
   eligibleRows.sort((a,b) => a.promo.localeCompare(b.promo) || a.tier - b.tier);
 
   const excludedRows = state.excl.filter(r => String(r['Excluded Product Code']).trim() === code)
+    .filter(r => isActivePromo(String(r['Promotion Code']).trim()))
     .map(r => {
       const promo = String(r['Promotion Code']).trim();
       const info = state.info.find(x => String(x['Promotion Code']).trim() === promo);
@@ -994,10 +1073,12 @@ async function handleFiles(fileList) {
     buildIndexes();
 
     Swal.update({ html: '<div class="text-slate-500">Saving to browser storage...</div>' });
+    const savedAt = new Date().toISOString();
+    state.dataLoadedAt = savedAt;
     await idbSet('raw', {
       info: state.info, assign: state.assign, excl: state.excl,
       product: state.product, custAssign: state.custAssign,
-      savedAt: new Date().toISOString(),
+      savedAt,
     });
 
     Swal.close();
@@ -1038,22 +1119,18 @@ function showApp() {
   document.getElementById('dataStatus').textContent =
     `${fmtNum(state.info.length)} promos · ${fmtNum(state.product.length)} products loaded`;
 
-  // Populate datalists
-  const promoList = document.getElementById('promoList');
-  promoList.innerHTML = state.info.map(r => {
-    const code = esc(String(r['Promotion Code']).trim());
-    const desc = esc((r['Promotion Description'] || '').substring(0, 50));
-    return `<option value="${code}">${desc}</option>`;
-  }).join('');
+  // Compute active sets and update filter bar
+  computeActiveSets();
+  updateFilterBar();
+  updateStalenessNote();
 
-  const productList = document.getElementById('productList');
-  productList.innerHTML = Array.from(state.productMap.entries()).map(([code, p]) => {
-    const desc = esc((p['Product Description'] || '').substring(0, 50));
-    return `<option value="${esc(code)}">${desc}</option>`;
-  }).join('');
+  // Populate datalists (respects filter)
+  populateDatalists();
 
-  // Initialize date filter tab
+  // Initialize tabs that need data
   initDateFilterTab();
+  initAssignmentTab();
+  renderHelp();
 }
 
 /* ============================================================
@@ -1094,8 +1171,10 @@ async function exportExcel(includeDetail) {
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(readme), 'README');
 
-    // Promo_Header
-    const promoHeaderRows = state.info.map(r => {
+    // Promo_Header (respects Active Promo filter)
+    const promoHeaderRows = state.info
+      .filter(r => isActivePromo(String(r['Promotion Code']).trim()))
+      .map(r => {
       const code = String(r['Promotion Code']).trim();
       const tiers = new Set(state.tierDetail.filter(t => t.promo === code).map(t => t.tier)).size;
       const eligible = (state.promoToProducts.get(code) || new Set()).size;
@@ -1118,7 +1197,9 @@ async function exportExcel(includeDetail) {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(promoHeaderRows), 'Promo_Header');
 
     // Promo_Tier_Detail
-    const tierRows = state.tierDetail.map(t => ({
+    const tierRows = state.tierDetail
+      .filter(t => isActivePromo(t.promo))
+      .map(t => ({
       'Promotion Code': t.promo, 'Promotion Description': t.promoDesc,
       'Promo Index': t.tier, 'Prodcat Level': t.level, 'Prodcat Code': t.prodcat,
       'UOM': t.uom, 'Min Qty': t.minQty, 'Must': t.must,
@@ -1127,7 +1208,9 @@ async function exportExcel(includeDetail) {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tierRows), 'Promo_Tier_Detail');
 
     // Product_Summary
-    const productRows = state.product.map(p => {
+    const productRows = state.product
+      .filter(p => isActiveProduct(String(p['Product Code']).trim()))
+      .map(p => {
       const code = String(p['Product Code']).trim();
       const eligible = (state.productToPromos.get(code) || new Set()).size;
       const excluded = (state.productToExclusions.get(code) || new Set()).size;
@@ -1175,7 +1258,10 @@ async function exportExcel(includeDetail) {
     }
 
     // Promo_Excluded_Detail
-    const excludedRows = state.excl.map(r => {
+    const excludedRows = state.excl
+      .filter(r => isActivePromo(String(r['Promotion Code']).trim())
+        && isActiveProduct(String(r['Excluded Product Code']).trim()))
+      .map(r => {
       const code = String(r['Excluded Product Code']).trim();
       const p = state.productMap.get(code) || {};
       const promo = String(r['Promotion Code']).trim();
@@ -1232,13 +1318,13 @@ function openSelectModal(mode) {
     selectState.items = state.info.map(r => ({
       code: String(r['Promotion Code']).trim(),
       desc: r['Promotion Description'] || '',
-    })).filter(x => x.code);
+    })).filter(x => x.code && isActivePromo(x.code));
     document.getElementById('selectModalTitle').textContent = 'Select Promo Codes (max 5)';
   } else {
     selectState.items = state.product.map(r => ({
       code: String(r['Product Code']).trim(),
       desc: r['Product Description'] || '',
-    })).filter(x => x.code);
+    })).filter(x => x.code && isActiveProduct(x.code));
     document.getElementById('selectModalTitle').textContent = 'Select Product Codes (max 5)';
   }
 
@@ -1314,6 +1400,25 @@ function updateSelectCounter() {
 async function exportSelected() {
   const codes = Array.from(selectState.selected);
   const mode = selectState.mode;
+
+  // Compute total row count as size heuristic
+  let totalRows = 0;
+  if (mode === 'promo') {
+    for (const c of codes) totalRows += filterProducts(Array.from(state.promoToProducts.get(c) || [])).length;
+  } else {
+    for (const c of codes) totalRows += filterPromos(Array.from(state.productToPromos.get(c) || [])).length;
+  }
+
+  if (totalRows > 500) {
+    const proceed = await Swal.fire({
+      icon: 'warning', title: 'Large export',
+      html: `<div class="text-sm">This will build ~<b>${fmtNum(totalRows)} rows</b> across ${codes.length} sheets.<br>It may take 10–30 seconds and use significant memory.</div>`,
+      showCancelButton: true, confirmButtonText: 'Continue', cancelButtonText: 'Cancel',
+      confirmButtonColor: '#1e293b', cancelButtonColor: '#94a3b8',
+    });
+    if (!proceed.isConfirmed) return;
+  }
+
   closeSelectModal();
 
   Swal.fire({ title: 'Building workbook...', html: '<div class="text-slate-500">Formatting selected items</div>',
@@ -1432,8 +1537,9 @@ function buildPromoSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR) {
   ws.columns = [{ width: 22 }, { width: 45 }, { width: 22 }, { width: 10 }, { width: 12 }, { width: 16 }, { width: 16 }];
 
   const tiers = state.tierDetail.filter(r => r.promo === code);
-  const eligibleProducts = Array.from(state.promoToProducts.get(code) || []);
-  const excludedRows = state.excl.filter(r => String(r['Promotion Code']).trim() === code);
+  const eligibleProducts = filterProducts(Array.from(state.promoToProducts.get(code) || []));
+  const excludedRows = state.excl.filter(r => String(r['Promotion Code']).trim() === code)
+    .filter(r => !filterState.activeProduct || isActiveProduct(String(r['Excluded Product Code']).trim()));
   const numTiers = new Set(tiers.map(t => t.tier)).size;
 
   // Row 1: Title bar
@@ -1590,8 +1696,8 @@ function buildProductSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR) {
   const ws = wb.addWorksheet(sheetName, { views: [{ state: 'frozen', ySplit: 2 }] });
   ws.columns = [{ width: 22 }, { width: 40 }, { width: 40 }, { width: 8 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 28 }];
 
-  const eligiblePromos = Array.from(state.productToPromos.get(code) || []);
-  const excludedPromos = Array.from(state.productToExclusions.get(code) || []);
+  const eligiblePromos = filterPromos(Array.from(state.productToPromos.get(code) || []));
+  const excludedPromos = filterPromos(Array.from(state.productToExclusions.get(code) || []));
 
   // Row 1: Title
   const t1 = ws.getCell('A1');
@@ -1676,6 +1782,7 @@ function buildProductSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR) {
 
   // Excluded Promos section
   const excludedRowsD = state.excl.filter(rr => String(rr['Excluded Product Code']).trim() === code)
+    .filter(rr => isActivePromo(String(rr['Promotion Code']).trim()))
     .map(rr => {
       const promo = String(rr['Promotion Code']).trim();
       const promoInfo = state.info.find(x => String(x['Promotion Code']).trim() === promo);
@@ -1883,6 +1990,7 @@ function applyDateFilter() {
   for (const r of state.info) {
     const code = String(r['Promotion Code']).trim();
     if (!code) continue;
+    if (filterState.activePromo && !filterState.activePromoSet.has(code)) continue;
     const s = parseDate(r['Promotion Start Date']);
     const e = parseDate(r['Promotion End Date']);
     if (!s || !e) { missing++; continue; }
@@ -2075,6 +2183,583 @@ async function exportDateFilterList() {
   }
 }
 
+/* ============================================================
+   GLOBAL FILTER (Active Promo / Active Product)
+   ============================================================ */
+const filterState = {
+  activePromo: true,
+  activeProduct: true,
+  todayKey: '',            // 'YYYY-MM-DD'
+  activePromoSet: null,    // Set<promoCode>
+  activeProductSet: null,  // Set<productCode>
+  missingDatesCount: 0,
+};
+
+function isoDateKey(y, m, d) { return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+function computeActiveSets() {
+  const now = new Date();
+  filterState.todayKey = isoDateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
+
+  // Active promos: Status='A' AND today in [Start, End]
+  filterState.activePromoSet = new Set();
+  filterState.missingDatesCount = 0;
+  for (const r of state.info) {
+    const code = String(r['Promotion Code']).trim();
+    if (!code) continue;
+    const status = String(r['Status'] || '').trim();
+    if (status !== 'A') continue;
+    const s = parseDate(r['Promotion Start Date']);
+    const e = parseDate(r['Promotion End Date']);
+    if (!s || !e) { filterState.missingDatesCount++; continue; }
+    const sKey = isoDateKey(s.y, s.m, s.d);
+    const eKey = isoDateKey(e.y, e.m, e.d);
+    if (sKey <= filterState.todayKey && filterState.todayKey <= eKey) {
+      filterState.activePromoSet.add(code);
+    }
+  }
+
+  // Active products: Status of the Product = 'A'
+  filterState.activeProductSet = new Set();
+  for (const [code, p] of state.productMap.entries()) {
+    if (String(p['Status of the Product'] || '').trim() === 'A') {
+      filterState.activeProductSet.add(code);
+    }
+  }
+}
+
+function isActivePromo(code) {
+  if (!filterState.activePromo) return true;
+  return filterState.activePromoSet.has(code);
+}
+function isActiveProduct(code) {
+  if (!filterState.activeProduct) return true;
+  return filterState.activeProductSet.has(code);
+}
+function filterPromos(codes) {
+  if (!filterState.activePromo) return codes;
+  return codes.filter(c => filterState.activePromoSet.has(c));
+}
+function filterProducts(codes) {
+  if (!filterState.activeProduct) return codes;
+  return codes.filter(c => filterState.activeProductSet.has(c));
+}
+
+function updateFilterBar() {
+  const promoCount = filterState.activePromoSet.size;
+  const productCount = filterState.activeProductSet.size;
+  document.getElementById('filterStats').innerHTML =
+    `<span class="font-medium">${fmtNum(promoCount)}</span>/${fmtNum(state.info.length)} active promos · ` +
+    `<span class="font-medium">${fmtNum(productCount)}</span>/${fmtNum(state.product.length)} active products`;
+
+  const noteEl = document.getElementById('filterMissingNote');
+  if (filterState.missingDatesCount > 0 && filterState.activePromo) {
+    noteEl.textContent = `⚠️ ${fmtNum(filterState.missingDatesCount)} promo${filterState.missingDatesCount > 1 ? 's' : ''} excluded from active list (missing Start or End Date)`;
+    noteEl.classList.remove('hidden');
+  } else {
+    noteEl.classList.add('hidden');
+  }
+}
+
+function updateStalenessNote() {
+  const noteEl = document.getElementById('dataStalenessNote');
+  const savedAt = state.dataLoadedAt;
+  if (!savedAt) { noteEl.classList.add('hidden'); return; }
+  const daysAgo = Math.floor((Date.now() - new Date(savedAt).getTime()) / (1000 * 60 * 60 * 24));
+  const dateStr = new Date(savedAt).toLocaleDateString();
+
+  if (daysAgo >= 30) {
+    noteEl.className = 'mt-2 text-xs px-2 py-1.5 rounded bg-amber-50 border border-amber-200 text-amber-800';
+    noteEl.innerHTML = `⚠️ Data loaded on <b>${dateStr}</b> (${daysAgo} days ago) — consider uploading fresh data`;
+  } else {
+    noteEl.className = 'mt-2 text-xs text-slate-500';
+    noteEl.innerHTML = `📅 Data loaded: ${dateStr} (${daysAgo === 0 ? 'today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`})`;
+  }
+  noteEl.classList.remove('hidden');
+}
+
+function onFilterChange() {
+  filterState.activePromo = document.getElementById('filterActivePromo').checked;
+  filterState.activeProduct = document.getElementById('filterActiveProduct').checked;
+  updateFilterBar();
+  // Rerender all views
+  populateDatalists();
+  const promoVal = document.getElementById('promoSearch').value.trim();
+  const productVal = document.getElementById('productSearch').value.trim();
+  if (promoVal) renderPromo(promoVal);
+  if (productVal) renderProduct(productVal);
+  applyDateFilter();
+  if (asnState.type && asnState.code) renderAssignment();
+  // Update autocomplete list for Assignment code
+  populateAsnCodeList();
+}
+
+function populateDatalists() {
+  const promoList = document.getElementById('promoList');
+  promoList.innerHTML = state.info
+    .filter(r => isActivePromo(String(r['Promotion Code']).trim()))
+    .map(r => {
+      const code = esc(String(r['Promotion Code']).trim());
+      const desc = esc((r['Promotion Description'] || '').substring(0, 50));
+      return `<option value="${code}">${desc}</option>`;
+    }).join('');
+
+  const productList = document.getElementById('productList');
+  productList.innerHTML = Array.from(state.productMap.entries())
+    .filter(([code]) => isActiveProduct(code))
+    .map(([code, p]) => {
+      const desc = esc((p['Product Description'] || '').substring(0, 50));
+      return `<option value="${esc(code)}">${desc}</option>`;
+    }).join('');
+}
+
+/* ============================================================
+   ASSIGNMENT LOOKUP TAB
+   ============================================================ */
+const asnState = { type: 'channel', code: '', codePool: [] };
+
+function buildAssignmentCodePools() {
+  const pools = { channel: new Set(), distributor: new Set(), businessType: new Set(), customer: new Set() };
+  for (const [promo, a] of state.promoAssignments.entries()) {
+    if (filterState.activePromo && !filterState.activePromoSet.has(promo)) continue;
+    a.channels.forEach(c => pools.channel.add(c));
+    a.distributors.forEach(c => pools.distributor.add(c));
+    a.businessTypes.forEach(c => pools.businessType.add(c));
+    a.customers.forEach(c => pools.customer.add(c));
+  }
+  return {
+    channel: Array.from(pools.channel).sort(),
+    distributor: Array.from(pools.distributor).sort(),
+    businessType: Array.from(pools.businessType).sort(),
+    customer: Array.from(pools.customer).sort(),
+  };
+}
+
+function populateAsnCodeList() {
+  const pools = buildAssignmentCodePools();
+  asnState.codePool = pools[asnState.type] || [];
+  const list = document.getElementById('asnCodeList');
+  // For Customer (720k), cap the datalist to 500 to keep DOM light; user types to filter
+  const cap = asnState.type === 'customer' ? 500 : asnState.codePool.length;
+  list.innerHTML = asnState.codePool.slice(0, cap).map(c => `<option value="${esc(c)}">`).join('');
+  document.getElementById('asnCode').placeholder = asnState.type === 'customer'
+    ? 'Type 3+ characters to search customer code...'
+    : `Select or type a code... (${fmtNum(asnState.codePool.length)} available)`;
+}
+
+function renderAssignment() {
+  const el = document.getElementById('asnResult');
+  const code = asnState.code.trim();
+  const type = asnState.type;
+  if (!code) { el.innerHTML = ''; return; }
+
+  // Find promos assigned to this code
+  const promos = [];
+  for (const [promoCode, a] of state.promoAssignments.entries()) {
+    if (filterState.activePromo && !filterState.activePromoSet.has(promoCode)) continue;
+    let match = false;
+    if (type === 'channel') match = a.channels.has(code);
+    else if (type === 'distributor') match = a.distributors.has(code);
+    else if (type === 'businessType') match = a.businessTypes.has(code);
+    else if (type === 'customer') match = a.customers.has(code);
+    if (match) promos.push(promoCode);
+  }
+
+  if (promos.length === 0) {
+    el.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
+      <div class="text-4xl mb-3">🔎</div>
+      No promos found for ${type} <span class="font-mono font-semibold text-slate-900">${esc(code)}</span>
+      ${filterState.activePromo ? `<div class="mt-3"><button id="asnShowAll" class="text-xs font-medium text-slate-700 hover:text-slate-900 underline">Show all (include inactive)</button></div>` : ''}
+    </div>`;
+    document.getElementById('asnShowAll')?.addEventListener('click', () => {
+      document.getElementById('filterActivePromo').checked = false;
+      onFilterChange();
+    });
+    return;
+  }
+
+  const rows = promos.map(pc => {
+    const r = state.info.find(x => String(x['Promotion Code']).trim() === pc);
+    if (!r) return null;
+    const eligible = filterProducts(Array.from(state.promoToProducts.get(pc) || [])).length;
+    const excluded = state.excl.filter(x => String(x['Promotion Code']).trim() === pc).length;
+    return {
+      code: pc, description: r['Promotion Description'] || '',
+      type: r['Type'] || '', category: r['Category'] || '',
+      startDate: r['Promotion Start Date'] || '', endDate: r['Promotion End Date'] || '',
+      status: r['Status'] || '', eligible, excluded,
+      schemeFlags: schemeFlags(r), appliesTo: assignmentShort(pc),
+    };
+  }).filter(Boolean).sort((a, b) => a.endDate.localeCompare(b.endDate));
+
+  el.innerHTML = `
+    <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div class="text-sm">
+        <span class="font-semibold text-slate-900" id="asnResultCount">${fmtNum(rows.length)}</span>
+        <span class="text-slate-500">promos assigned to ${type} <span class="font-mono font-medium text-slate-700">${esc(code)}</span></span>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <input id="asnResultFilter" placeholder="Filter results..." class="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-slate-400 w-40 sm:w-auto">
+        <button id="asnExportList" class="px-3 py-1.5 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition whitespace-nowrap">Export list</button>
+      </div>
+    </div>
+    <div id="asnResultTable"></div>
+  `;
+  asnState._rows = rows;
+  renderAsnTable('');
+  document.getElementById('asnResultFilter').addEventListener('input', (e) => renderAsnTable(e.target.value));
+  document.getElementById('asnExportList').addEventListener('click', exportAssignmentList);
+}
+
+function renderAsnTable(filterQ) {
+  const rows = asnState._rows || [];
+  const q = filterQ.toLowerCase().trim();
+  const filtered = q ? rows.filter(r => r.code.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)) : rows;
+  const el = document.getElementById('asnResultTable');
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="bg-white rounded-xl border border-slate-200 p-6 text-center text-sm text-slate-400">No matches</div>';
+    return;
+  }
+  el.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+      <table class="data-table w-full text-sm">
+        <thead><tr>
+          <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase whitespace-nowrap">Promo Code</th>
+          <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Description</th>
+          <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Type</th>
+          <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Category</th>
+          <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase whitespace-nowrap">Start</th>
+          <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase whitespace-nowrap">End</th>
+          <th class="text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Status</th>
+          <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase whitespace-nowrap">Scheme</th>
+          <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Applies to</th>
+          <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase"># Elig</th>
+          <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase"># Excl</th>
+        </tr></thead>
+        <tbody>
+          ${filtered.map(r => `<tr class="asn-row cursor-pointer" data-code="${esc(r.code)}">
+            <td class="px-3 py-2 font-mono font-medium text-slate-900 whitespace-nowrap">${esc(r.code)}</td>
+            <td class="px-3 py-2">${esc(r.description)}</td>
+            <td class="px-3 py-2">${esc(r.type)}</td>
+            <td class="px-3 py-2">${esc(r.category)}</td>
+            <td class="px-3 py-2 text-xs whitespace-nowrap">${esc(r.startDate)}</td>
+            <td class="px-3 py-2 text-xs whitespace-nowrap">${esc(r.endDate)}</td>
+            <td class="px-3 py-2 text-center">${esc(r.status)}</td>
+            <td class="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">${esc(r.schemeFlags || '—')}</td>
+            <td class="px-3 py-2 text-xs text-slate-600 min-w-[180px]">${esc(r.appliesTo)}</td>
+            <td class="px-3 py-2 text-right">${fmtNum(r.eligible)}</td>
+            <td class="px-3 py-2 text-right">${fmtNum(r.excluded)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="text-xs text-slate-400 italic mt-2">💡 Click any row to view details in Promo Lookup tab</p>`;
+
+  el.querySelectorAll('.asn-row').forEach(tr => {
+    tr.addEventListener('click', () => jumpToPromoLookup(tr.dataset.code));
+  });
+}
+
+function jumpToPromoLookup(code) {
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('tab-active'); b.classList.add('tab-inactive'); });
+  const promoBtn = document.querySelector('.tab-btn[data-tab="promo"]');
+  promoBtn.classList.remove('tab-inactive'); promoBtn.classList.add('tab-active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById('tabPromo').classList.remove('hidden');
+  document.getElementById('promoSearch').value = code;
+  renderPromo(code);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function exportAssignmentList() {
+  const rows = asnState._rows || [];
+  if (rows.length === 0) {
+    Swal.fire({ icon: 'info', title: 'No results to export', confirmButtonColor: '#1e293b' });
+    return;
+  }
+  Swal.fire({ title: 'Building Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading(), showConfirmButton: false });
+  await new Promise(r => setTimeout(r, 50));
+  try {
+    const wb = new ExcelJS.Workbook();
+    const NAVY = 'FF1E293B';
+    const ws = wb.addWorksheet('Assignment Result', { views: [{ state: 'frozen', ySplit: 3 }] });
+    ws.columns = [
+      { width: 14 }, { width: 45 }, { width: 8 }, { width: 12 },
+      { width: 13 }, { width: 13 }, { width: 10 }, { width: 20 },
+      { width: 28 }, { width: 15 }, { width: 15 },
+    ];
+    const t = ws.getCell('A1');
+    t.value = `Assignment: ${asnState.type} = ${asnState.code} — ${rows.length} promos`;
+    t.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Arial' };
+    t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    t.alignment = { vertical: 'middle', indent: 1 };
+    ws.mergeCells('A1:K1');
+    ws.getRow(1).height = 26;
+
+    const filterInfo = filterState.activePromo ? 'Active promos only' : 'All promos (including inactive)';
+    ws.getCell('A2').value = `Filter: ${filterInfo} · Generated: ${new Date().toLocaleString()}`;
+    ws.getCell('A2').font = { italic: true, size: 9, color: { argb: 'FF64748B' }, name: 'Arial' };
+    ws.mergeCells('A2:K2');
+
+    ['Promo Code','Description','Type','Category','Start Date','End Date','Status','Scheme Flags','Applies to','# Eligible SKUs','# Excluded SKUs'].forEach((h, i) => {
+      const c = ws.getCell(3, i + 1);
+      c.value = h;
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Arial' };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    });
+    ws.getRow(3).height = 22;
+
+    let r = 4;
+    for (const row of rows) {
+      ws.getCell(r, 1).value = row.code;
+      ws.getCell(r, 1).font = { name: 'Consolas', size: 10, bold: true };
+      ws.getCell(r, 2).value = row.description;
+      ws.getCell(r, 3).value = row.type;
+      ws.getCell(r, 4).value = row.category;
+      ws.getCell(r, 5).value = row.startDate;
+      ws.getCell(r, 6).value = row.endDate;
+      ws.getCell(r, 7).value = row.status;
+      ws.getCell(r, 7).alignment = { horizontal: 'center' };
+      ws.getCell(r, 8).value = row.schemeFlags || '';
+      ws.getCell(r, 9).value = row.appliesTo;
+      ws.getCell(r, 10).value = row.eligible;
+      ws.getCell(r, 10).alignment = { horizontal: 'right' };
+      ws.getCell(r, 11).value = row.excluded;
+      ws.getCell(r, 11).alignment = { horizontal: 'right' };
+      r++;
+    }
+    ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: r - 1, column: 11 } };
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url; a.download = `Assignment_${asnState.type}_${asnState.code}_${ts}.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+    Swal.fire({ icon: 'success', title: 'Excel exported', timer: 2000, showConfirmButton: false });
+  } catch (err) {
+    console.error(err);
+    Swal.fire({ icon: 'error', title: 'Export failed', text: err.message });
+  }
+}
+
+function initAssignmentTab() {
+  document.getElementById('asnType').addEventListener('change', (e) => {
+    asnState.type = e.target.value;
+    asnState.code = '';
+    document.getElementById('asnCode').value = '';
+    populateAsnCodeList();
+    renderAssignment();
+  });
+  document.getElementById('asnCode').addEventListener('input', (e) => {
+    asnState.code = e.target.value;
+    renderAssignment();
+  });
+  populateAsnCodeList();
+}
+
+/* ============================================================
+   HELP & PLAYBOOK
+   ============================================================ */
+function renderHelp() {
+  const stats = state.info ? `
+    <ul class="list-disc list-inside space-y-1 text-slate-600">
+      <li><b>${fmtNum(state.info.length)}</b> promotions in PROMO_INFO</li>
+      <li><b>${fmtNum(state.product.length)}</b> products in PRODUCT_INFO</li>
+      <li><b>${fmtNum(state.assign.length)}</b> product-assignment lines (PROMO_PRDASSIGN)</li>
+      <li><b>${fmtNum(state.excl.length)}</b> exclusion lines (PROMO_PRDEXCLUDED)</li>
+      <li><b>${fmtNum(state.custAssign.length)}</b> customer/channel assignment lines (PROMO_ASSIGNMENT)</li>
+      <li><b>${fmtNum(state.expanded.length)}</b> eligible (Promo × SKU) pairs after expansion + exclusion</li>
+      <li>Data loaded: <b>${state.dataLoadedAt ? new Date(state.dataLoadedAt).toLocaleString() : '—'}</b></li>
+    </ul>` : '';
+
+  const sections = [
+    {
+      id: 'gettingStarted', icon: '🚀', title: 'A. Getting Started',
+      content: `
+        <p class="mb-3">Upload <b>5 required CSV files</b> (UTF-16 tab-separated, auto-detected by filename):</p>
+        <ol class="list-decimal list-inside space-y-1 mb-4 text-slate-600">
+          <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_INFO.csv</code> — Master โปรทั้งหมด</li>
+          <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_PRDASSIGN.csv</code> — สินค้าที่โปรครอบคลุม</li>
+          <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_PRDEXCLUDED.csv</code> — สินค้าที่ถูกยกเว้น</li>
+          <li><code class="text-xs bg-slate-100 px-1 rounded">PRODUCT_INFO.csv</code> — Master สินค้า</li>
+          <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_ASSIGNMENT.csv</code> — Assignment ให้ Channel/Distributor/Customer</li>
+        </ol>
+        <p class="mb-3">ข้อมูลจะถูกบันทึกใน <b>IndexedDB</b> (ในเบราว์เซอร์) — เปิดครั้งหน้าไม่ต้อง upload ใหม่</p>
+        <div class="p-3 bg-slate-50 rounded-lg">
+          <div class="text-xs font-semibold text-slate-500 uppercase mb-2">📊 Current data status</div>
+          ${stats}
+        </div>`
+    },
+    {
+      id: 'features', icon: '🧩', title: 'B. Features Overview',
+      content: `
+        <div class="space-y-3">
+          <div><b>🔍 Promo Lookup</b> — ใส่ Promo Code → เห็น header, tier conditions, eligible SKUs, excluded SKUs, applies to (channel/dist/cust)</div>
+          <div><b>🔎 Product Lookup</b> — ใส่ Product Code → เห็นโปรที่ครอบคลุม, โปรที่ยกเว้น, พร้อม applies to</div>
+          <div><b>📅 Date Filter</b> — เลือกเดือน → หาโปรที่ Start/End อยู่ในเดือนนั้น (default sort by End Date ascending)</div>
+          <div><b>📺 Assignment Lookup</b> — เลือก Channel/Distributor/Business Type/Customer → เห็นโปรที่ให้ใช้</div>
+          <div class="pt-2 mt-2 border-t border-slate-100">
+            <div class="font-semibold text-slate-700 mb-2">🔍 Global Filter Bar</div>
+            <ul class="list-disc list-inside space-y-1 text-slate-600 text-sm">
+              <li><b>Active Promos only</b>: Status='A' AND today อยู่ใน Start-End range (strict)</li>
+              <li><b>Active Products only</b>: Status of the Product = 'A'</li>
+              <li>ทั้ง 2 filter อิสระ — เปิด/ปิดแยกกันได้</li>
+              <li>Default: ทั้ง 2 เปิดอยู่ (Active only)</li>
+              <li>Missing Start/End Date → ถูกจัดเป็น Inactive อัตโนมัติ</li>
+            </ul>
+          </div>
+          <div class="pt-2 mt-2 border-t border-slate-100">
+            <div class="font-semibold text-slate-700 mb-2">💾 Export Options (Export ▾)</div>
+            <ul class="list-disc list-inside space-y-1 text-slate-600 text-sm">
+              <li><b>Workbook</b> — Excel รวมทุก sheet header ระดับสรุป</li>
+              <li><b>Selected promos…</b> — เลือก ≤5 promo → 1 sheet/promo แบบ mirror หน้าเว็บ</li>
+              <li><b>Selected products…</b> — เลือก ≤5 product → 1 sheet/product</li>
+              <li><b>Export list</b> ใน Date Filter/Assignment tab → 1 sheet flat list</li>
+              <li>ทุก export <b>respect filter setting</b> — export เฉพาะที่แสดงอยู่</li>
+            </ul>
+          </div>
+        </div>`
+    },
+    {
+      id: 'playbooks', icon: '📚', title: 'C. Common Playbooks',
+      content: `
+        <div class="space-y-4">
+          <div class="p-3 bg-slate-50 rounded-lg">
+            <div class="font-semibold text-slate-800 mb-1">"โปรที่จะหมดใน Q4 มีอะไรบ้าง"</div>
+            <div class="text-sm text-slate-600">→ Tab <b>Date Filter</b> → Match on: End Date → คลิก preset <b>Q4</b> → sort by End Date asc → คลิก row → ดูรายละเอียด → Export list</div>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-lg">
+            <div class="font-semibold text-slate-800 mb-1">"SKU 14000007 อยู่ในโปรอะไร ให้ Distributor 301 ใช้ได้ไหม"</div>
+            <div class="text-sm text-slate-600">→ Tab <b>Product Lookup</b> → ใส่ code → ดู "Eligible Promos" → ดู column "Applies to" มี "301" หรือไม่</div>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-lg">
+            <div class="font-semibold text-slate-800 mb-1">"โปรที่ให้ LMT ใช้ทั้งหมด"</div>
+            <div class="text-sm text-slate-600">→ Tab <b>Assignment Lookup</b> → Type: Channel → Code: LMT → เห็นทั้ง table → Export list</div>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-lg">
+            <div class="font-semibold text-slate-800 mb-1">"ลูกค้า 3010001392 มีโปรอะไรใช้ได้"</div>
+            <div class="text-sm text-slate-600">→ Tab <b>Assignment Lookup</b> → Type: Customer → พิมพ์ 301 → เลือกจาก autocomplete → เห็น promos ที่ assign ให้ลูกค้านี้</div>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-lg">
+            <div class="font-semibold text-slate-800 mb-1">"Export 5 โปรเป็น presentation ให้ Sales Director"</div>
+            <div class="text-sm text-slate-600">→ ปุ่ม <b>Export ▾</b> → Selected promos… → search + เลือก 5 promos → Export → 1 sheet/promo พร้อม section ครบ</div>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-lg">
+            <div class="font-semibold text-slate-800 mb-1">"ดู SKU ที่ยกเว้นของโปร 2607D225"</div>
+            <div class="text-sm text-slate-600">→ Tab <b>Promo Lookup</b> → ใส่ code → เลื่อนลง Section 4 "Excluded SKUs"</div>
+          </div>
+        </div>`
+    },
+    {
+      id: 'dataModel', icon: '🧮', title: 'D. Data Model',
+      content: `
+        <div class="space-y-4">
+          <div>
+            <div class="font-semibold text-slate-800 mb-2">Prodcat Expansion</div>
+            <ul class="list-disc list-inside space-y-1 text-slate-600 text-sm">
+              <li><b>Level 1–6</b>: Prodcat Code เป็น <i>prefix match</i> กับ <code>Prodcat 10 Code</code> ใน PRODUCT_INFO (3/6/9/12/15/18 ตัวอักษร)</li>
+              <li><b>Level 7</b>: Prodcat Code = Product Code (match ที่ SKU ตรง)</li>
+            </ul>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-2">Exclusion Logic</div>
+            <p class="text-sm text-slate-600">SKU ที่ถูก expand จาก Prodcat แล้วมีอยู่ใน PROMO_PRDEXCLUDED (match (Promotion Code × Product Code)) จะถูกหักออก ก่อนสร้างตาราง Eligible SKUs</p>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-2">Assignment Categorization</div>
+            <ul class="list-disc list-inside space-y-1 text-slate-600 text-sm">
+              <li><b>Channel</b> = Assignment Type <code>C</code> + Hierarchy Type <code>1/2/3</code> (LMT, RET, WHS, GT, ...)</li>
+              <li><b>Distributor</b> = Assignment Type <code>D</code> (101, 102, 201, 301, ...)</li>
+              <li><b>Business Type</b> = Assignment Type <code>K</code> หรือ <code>A</code> (NB, BF, RTLL, RTLM)</li>
+              <li><b>Specific Customer</b> = Assignment Type <code>C</code> + Hierarchy Type <code>4</code> (customer code 10 หลัก)</li>
+            </ul>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-2">Scheme Flags</div>
+            <p class="text-sm text-slate-600">รวม field ที่ = 1 จาก 10 SCHEME columns ใน PROMO_INFO (MRP, TDR, QPS, Prorata, Range, Combi, Dynamic, Basic Disc, FOC Recurring, Max Count)</p>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-2">Active Promo (Strict)</div>
+            <p class="text-sm text-slate-600"><code class="bg-slate-100 px-1 rounded">Status === 'A'</code> <b>AND</b> <code class="bg-slate-100 px-1 rounded">Start Date ≤ today ≤ End Date</code></p>
+            <p class="text-xs text-slate-500 mt-1">Missing Start หรือ End Date → ถือว่า Inactive (safe default)</p>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-lg">
+            <div class="text-xs font-semibold text-slate-500 uppercase mb-2">📊 Live stats</div>
+            ${stats}
+          </div>
+        </div>`
+    },
+    {
+      id: 'faq', icon: '❓', title: 'E. FAQ / Troubleshooting',
+      content: `
+        <div class="space-y-4">
+          <div>
+            <div class="font-semibold text-slate-800 mb-1">ทำไม parse ช้า?</div>
+            <p class="text-sm text-slate-600">ไฟล์ PROMO_ASSIGNMENT.csv มี ~750k rows → ครั้งแรกใช้เวลา 10–15 วินาที ครั้งต่อไป restore จาก IndexedDB ~5 วิ</p>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-1">ทำไมโปรที่หากันไม่แสดง?</div>
+            <p class="text-sm text-slate-600">อาจถูกกรองเพราะ <b>Active only</b> filter — ลอง uncheck "Active Promos only" ใน Filter bar หรือ กดลิงก์ "Show all" ในหน้า search result</p>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-1">Missing dates warning หมายความว่าอะไร?</div>
+            <p class="text-sm text-slate-600">โปรที่ไม่มี Start หรือ End Date จะถูกจัดเป็น Inactive อัตโนมัติ (ไม่โผล่ในผลลัพธ์ทั้งใน Date Filter และเมื่อเปิด Active filter) — ควรตรวจใน sheet <code>Data_Quality</code></p>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-1">IndexedDB เต็มหรือ error ทำยังไง?</div>
+            <p class="text-sm text-slate-600">คลิกปุ่ม <b>Clear</b> ที่มุมขวาบน → reload → upload ใหม่ 5 ไฟล์</p>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-1">Count ในแต่ละหน้าไม่ตรงกัน</div>
+            <p class="text-sm text-slate-600"># Eligible SKUs ในหน้า Promo Header ต่างจาก sum ใน Tier Detail เพราะเราทำ <b>dedupe</b> ที่ (Promo × Tier × Product) — SKU ที่ผูกผ่านหลาย Prodcat ในโปรเดียวจะถูกนับครั้งเดียว</p>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-1">Data เก่าเกินไป?</div>
+            <p class="text-sm text-slate-600">ถ้าเปิดมาเห็น banner สีเหลือง "Data loaded X days ago" — ควร upload ใหม่ ทีมทั้งหมดใช้ข้อมูลแยกในเครื่องของตัวเอง ไม่ sync กันอัตโนมัติ</p>
+          </div>
+        </div>`
+    },
+  ];
+
+  const el = document.getElementById('helpAccordions');
+  el.innerHTML = sections.map(sec => `
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <button class="help-toggle w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-slate-50 transition text-left" data-target="${sec.id}">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">${sec.icon}</span>
+          <span class="font-semibold text-slate-900">${sec.title}</span>
+        </div>
+        <span class="help-caret text-slate-400 text-lg">▸</span>
+      </button>
+      <div id="help-${sec.id}" class="hidden px-4 sm:px-6 pb-5 pt-1 text-sm text-slate-700">${sec.content}</div>
+    </div>`).join('');
+
+  el.querySelectorAll('.help-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.target;
+      const box = document.getElementById(`help-${target}`);
+      const caret = btn.querySelector('.help-caret');
+      const isOpen = !box.classList.contains('hidden');
+      if (isOpen) {
+        box.classList.add('hidden');
+        caret.textContent = '▸';
+      } else {
+        box.classList.remove('hidden');
+        caret.textContent = '▾';
+      }
+    });
+  });
+
+  // Auto-open first section
+  const firstBox = document.getElementById(`help-${sections[0].id}`);
+  const firstCaret = el.querySelector('.help-caret');
+  if (firstBox) { firstBox.classList.remove('hidden'); firstCaret.textContent = '▾'; }
+}
+
 function initDateFilterTab() {
   scanAvailableMonths();
   renderPresets();
@@ -2114,6 +2799,7 @@ async function tryRestore() {
       Swal.fire({ title: 'Restoring...', allowOutsideClick: false, didOpen: () => Swal.showLoading(), showConfirmButton: false });
       state.info = saved.info; state.assign = saved.assign; state.excl = saved.excl;
       state.product = saved.product; state.custAssign = saved.custAssign;
+      state.dataLoadedAt = saved.savedAt;
       buildIndexes();
       Swal.close();
       showApp();
@@ -2167,12 +2853,15 @@ document.querySelectorAll('.export-opt').forEach(btn => {
   btn.addEventListener('click', () => {
     menu.classList.add('hidden');
     const mode = btn.dataset.mode;
-    if (mode === 'full') exportExcel(true);
-    else if (mode === 'light') exportExcel(false);
+    if (mode === 'light') exportExcel(false);
     else if (mode === 'selected-promo') openSelectModal('promo');
     else if (mode === 'selected-product') openSelectModal('product');
   });
 });
+
+// Global filter checkboxes
+document.getElementById('filterActivePromo').addEventListener('change', onFilterChange);
+document.getElementById('filterActiveProduct').addEventListener('change', onFilterChange);
 
 // Multiselect modal
 document.getElementById('selectModalClose').addEventListener('click', closeSelectModal);
