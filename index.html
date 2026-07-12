@@ -48,11 +48,6 @@
             <div class="text-xs text-slate-500">All headers + summaries · respects Active filter</div>
           </button>
           <div class="border-t border-slate-100"></div>
-          <button class="export-opt w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition" data-mode="dms">
-            <div class="font-medium text-slate-900">DMS Format table</div>
-            <div class="text-xs text-slate-500">Sales Controller layout · 22 columns</div>
-          </button>
-          <div class="border-t border-slate-100"></div>
           <button class="export-opt w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition" data-mode="selected-promo">
             <div class="font-medium text-slate-900">Selected promos…</div>
             <div class="text-xs text-slate-500">Pick up to 5 · one sheet per promo</div>
@@ -73,40 +68,22 @@
 <div id="dropZoneWrap" class="mt-4 sm:mt-8">
   <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-2xl bg-white p-6 sm:p-16 text-center hover:border-slate-400 transition">
     <div class="text-4xl sm:text-5xl mb-3 sm:mb-4">📂</div>
-    <h2 class="text-base sm:text-lg font-semibold text-slate-900 mb-2">Drop 5 CSV files + optional GT Excel</h2>
+    <h2 class="text-base sm:text-lg font-semibold text-slate-900 mb-2">Drop 6 CSV files here</h2>
     <p class="text-xs sm:text-sm text-slate-500 mb-4 sm:mb-5">or use the button below</p>
     <button id="btnBrowse" class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white hover:bg-slate-700 rounded-lg font-medium text-sm transition mb-6 sm:mb-8">
       📁 Browse Files
     </button>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 max-w-6xl mx-auto text-left">
-      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
-        <div class="text-xs font-mono text-slate-500">Required:</div>
-        <div class="text-xs font-medium text-slate-700 mt-1 break-all">PROMO_INFO.csv</div>
-      </div>
-      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
-        <div class="text-xs font-mono text-slate-500 sm:invisible">Required:</div>
-        <div class="text-xs font-medium text-slate-700 mt-1 break-all">PROMO_PRDASSIGN.csv</div>
-      </div>
-      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
-        <div class="text-xs font-mono text-slate-500 sm:invisible">Required:</div>
-        <div class="text-xs font-medium text-slate-700 mt-1 break-all">PROMO_PRDEXCLUDED.csv</div>
-      </div>
-      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
-        <div class="text-xs font-mono text-slate-500 sm:invisible">Required:</div>
-        <div class="text-xs font-medium text-slate-700 mt-1 break-all">PRODUCT_INFO.csv</div>
-      </div>
-      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
-        <div class="text-xs font-mono text-slate-500 sm:invisible">Required:</div>
-        <div class="text-xs font-medium text-slate-700 mt-1 break-all">PROMO_ASSIGNMENT.csv</div>
-      </div>
-      <div class="p-2 sm:p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-        <div class="text-xs font-mono text-emerald-700">Optional:</div>
-        <div class="text-xs font-medium text-slate-700 mt-1 break-all">*GT_Promotion_Code*.xlsx</div>
-      </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 max-w-5xl mx-auto text-left">
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200"><div class="text-xs font-medium text-slate-700 break-all">PROMO_INFO.csv</div></div>
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200"><div class="text-xs font-medium text-slate-700 break-all">PROMO_DETAIL.csv</div></div>
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200"><div class="text-xs font-medium text-slate-700 break-all">PROMO_PRDASSIGN.csv</div></div>
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200"><div class="text-xs font-medium text-slate-700 break-all">PROMO_PRDEXCLUDED.csv</div></div>
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200"><div class="text-xs font-medium text-slate-700 break-all">PRODUCT_INFO.csv</div></div>
+      <div class="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-200"><div class="text-xs font-medium text-slate-700 break-all">PROMO_ASSIGNMENT.csv</div></div>
     </div>
-    <p class="text-xs text-slate-400 mt-4 sm:mt-6">Auto-detected by filename · UTF-16 / UTF-8 supported · GT file adds Group, Channel, Key Account · Data saved in browser</p>
+    <p class="text-xs text-slate-400 mt-4 sm:mt-6">Auto-detected by filename · UTF-16 / UTF-8 supported · Data saved in browser (IndexedDB)</p>
   </div>
-  <input id="fileInput" type="file" multiple accept=".csv,.xlsx" class="hidden">
+  <input id="fileInput" type="file" multiple accept=".csv" class="hidden">
 </div>
 
 <!-- APP (after data loaded) -->
@@ -271,7 +248,7 @@
           <select id="dmsFGroup" multiple size="4" class="w-full text-sm border border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-slate-900 bg-white"></select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Channel</label>
+          <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Mechanic</label>
           <select id="dmsFChannel" multiple size="4" class="w-full text-sm border border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-slate-900 bg-white"></select>
         </div>
         <div>
@@ -378,11 +355,9 @@ async function idbClear() {
 }
 
 const state = {
-  info: null, assign: null, excl: null, product: null, custAssign: null,
-  gt: null,                // optional: GT Promotion Code rows
-  gtMap: null,             // Map<promoCode, gtRow>
-  gtOrphans: [],           // promos in GT but not in PROMO_INFO
-  tierConflicts: [],       // {code, csvTier, gtTier}
+  info: null, detail: null, assign: null, excl: null, product: null, custAssign: null,
+  detailByPromo: null,     // Map<promoCode, Array<detailRow>>
+  focByProduct: null,      // Map<productCode, Set<promoCode>>  (SKU is a giveaway)
   productMap: null,
   prodByP10: null,
   allP10: null,
@@ -403,14 +378,13 @@ const state = {
    ============================================================ */
 const FILE_MAP = {
   info: /promo[_ ]?info/i,
+  detail: /promo[_ ]?detail/i,
   assign: /promo[_ ]?prd[_ ]?assign/i,
   excl: /promo[_ ]?prd[_ ]?exclud/i,
   product: /product[_ ]?info/i,
   custAssign: /promo[_ ]?assignment/i,
 };
-// Optional 6th file — GT Promotion Code (Excel, filename changes monthly)
-const GT_FILE_RE = /GT.*promotion.*code/i;
-const REQUIRED_KEYS = ['info', 'assign', 'excl', 'product', 'custAssign'];
+const REQUIRED_KEYS = ['info', 'detail', 'assign', 'excl', 'product', 'custAssign'];
 
 function detectEncoding(buffer) {
   const b = new Uint8Array(buffer.slice(0, 3));
@@ -442,164 +416,196 @@ async function parseFile(file) {
 }
 
 function classifyFile(filename) {
-  if (GT_FILE_RE.test(filename)) return 'gt';
   for (const [key, re] of Object.entries(FILE_MAP)) {
     if (re.test(filename)) return key;
   }
   return null;
 }
 
-/* ---------- GT Excel parsing + normalization ---------- */
-// Header row is row 3 (index 2). Sheet: always the first one.
-async function parseGTFile(file) {
-  const buffer = await file.arrayBuffer();
-  const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
-  const sheetName = wb.SheetNames[0];          // always first sheet
-  const ws = wb.Sheets[sheetName];
-  // header row index 2 (0-based) => range starts at row 3
-  const rows = XLSX.utils.sheet_to_json(ws, { range: 2, defval: null, raw: false });
-  return rows.filter(r => r['Promotion Code'] && String(r['Promotion Code']).trim());
-}
+/* ---------- PROMO_DETAIL: the "GET" side ----------
+   Promotion Type: 1 = FOC (free goods), 2 = discount in baht, 3 = discount in %
+   Total Buy = qty you must buy · Discount = value you get
+   Prodcat Code + FOC Prodcat Level + TTL_FOC_QTY + FOC UOM = the giveaway
+------------------------------------------------------ */
+const PROMO_TYPE_LABEL = { '1': 'FOC', '2': 'Discount \u0e3f', '3': 'Discount %' };
 
-// Headers arrive with \r\n or \n line breaks; normalize keys to compare robustly.
-// "Sales\r\nSet by" -> "salessetby"
-function normKey(k) {
-  return String(k).replace(/[\r\n\s.]+/g, '').toLowerCase();
-}
-// Look up a field by any of several candidate header names, ignoring whitespace/case
-function gtField(row, ...candidates) {
-  const wanted = candidates.map(normKey);
-  for (const [k, v] of Object.entries(row)) {
-    if (wanted.includes(normKey(k))) {
-      return v == null ? '' : String(v).trim();
+function buildDetailIndex() {
+  state.detailByPromo = new Map();
+  state.focByProduct = new Map();
+  if (!state.detail) return;
+
+  for (const raw of state.detail) {
+    const promo = String(raw['Promotion Code'] ?? '').trim();
+    if (!promo) continue;
+    const ptype = String(raw['Promotion Type'] ?? '').trim();
+    const focCode = String(raw['Prodcat Code'] ?? '').trim();
+    const focLevel = parseInt(raw['FOC Prodcat Level']) || 0;
+
+    // Expand the FOC prodcat into real SKUs (same rule as the buy side)
+    let focSkus = [];
+    if (focCode) focSkus = expandProdcat(focLevel, focCode);
+
+    const rec = {
+      promo,
+      tier: parseInt(raw['Promo Index']) || 0,
+      ptype,
+      ptypeLabel: PROMO_TYPE_LABEL[ptype] || ptype,
+      totalBuy: parseFloat(raw['Total Buy']) || 0,
+      discount: parseFloat(raw['Discount']) || 0,
+      focCode,
+      focLevel,
+      focUom: String(raw['FOC UOM'] ?? '').trim(),
+      focQty: parseFloat(raw['TTL_FOC_QTY']) || 0,
+      focSkus,
+    };
+
+    if (!state.detailByPromo.has(promo)) state.detailByPromo.set(promo, []);
+    state.detailByPromo.get(promo).push(rec);
+
+    // Reverse index: which promos give this SKU away for free
+    for (const sku of focSkus) {
+      if (!state.focByProduct.has(sku)) state.focByProduct.set(sku, new Set());
+      state.focByProduct.get(sku).add(promo);
     }
   }
+  for (const arr of state.detailByPromo.values()) arr.sort((a, b) => a.tier - b.tier);
+}
+
+function getDetail(promoCode) { return state.detailByPromo?.get(promoCode) || []; }
+
+// Buy UOM for a promo — from PROMO_INFO, falling back to PRODASSIGN
+function buyUomOf(promoCode) {
+  const inf = state.info.find(r => String(r['Promotion Code']).trim() === promoCode);
+  const u = String(inf?.['Buy UOM'] ?? '').trim();
+  if (u) return u;
+  const t = state.tierDetail?.find(x => x.promo === promoCode);
+  return t?.uom || '';
+}
+
+// Human-readable "buy X get Y" for one detail row  (Q1a: raw system UOM, no CAR->CTN)
+function detailStr(rec, buyUom) {
+  const bu = buyUom || '';
+  if (rec.ptype === '1') return `${fmtNum(rec.totalBuy)} ${bu} get ${fmtNum(rec.focQty)} ${rec.focUom}`.trim();
+  if (rec.ptype === '2') return `${fmtNum(rec.totalBuy)} ${bu} get ${rec.discount} \u0e3f`.trim();
+  if (rec.ptype === '3') return `${fmtNum(rec.totalBuy)} ${bu} get ${rec.discount}%`.trim();
   return '';
 }
 
-function normStatus(v) {
-  const s = String(v ?? '').trim().toLowerCase();
-  if (!s) return '';
-  if (s.startsWith('inactive')) return 'Inactive';
-  if (s.startsWith('active')) return 'Active';
-  return String(v).trim();
-}
-function normTier(v) {
-  const s = String(v ?? '').trim();
-  if (!s) return '';
-  const m = s.match(/tier\s*(\d+)/i);
-  return m ? `Tier ${m[1]}` : s;
-}
-function normGroup(v) {
-  const s = String(v ?? '').trim();
-  if (!s) return '';
-  const m = s.match(/^G0*(\d+)$/i);     // G09 -> G9, G1 -> G1
-  return m ? `G${m[1]}` : s.toUpperCase();
-}
-function csvTierToLabel(cat) {
-  const m = String(cat ?? '').trim().match(/TIER\s*(\d+)/i);
-  return m ? `Tier ${m[1]}` : '';
-}
-
-function buildGTIndex() {
-  state.gtMap = new Map();
-  state.gtOrphans = [];
-  state.tierConflicts = [];
-  if (!state.gt || state.gt.length === 0) return;
-
-  const infoCodes = new Set(state.info.map(r => String(r['Promotion Code']).trim()));
-  const csvCat = new Map(state.info.map(r => [String(r['Promotion Code']).trim(), r['Category']]));
-
-  for (const raw of state.gt) {
-    const code = gtField(raw, 'Promotion Code');
-    if (!code) continue;
-
-    const rec = {
-      code,
-      gtStatus:   normStatus(gtField(raw, 'Status')),
-      channel:    gtField(raw, 'Channel'),
-      gtType:     gtField(raw, 'Type'),
-      gtTier:     normTier(gtField(raw, 'Category')),
-      group:      normGroup(gtField(raw, 'Group')),
-      maxCount:   gtField(raw, 'Max Count', 'MaxCount'),
-      shopType:   gtField(raw, 'ShopType Classification', 'Shop Type'),
-      keyAccount: gtField(raw, 'Key Account Group'),
-      salesSetBy: gtField(raw, 'Sales Set by', 'Sales Level'),
-      sales:      gtField(raw, 'Sales'),
-      focSetBy:   gtField(raw, 'FOC Set By', 'FOC Level'),
-      foc:        gtField(raw, 'FOC'),
-      exclude:    gtField(raw, 'Exclude'),
-      addExclude: gtField(raw, 'Add Exclude'),
-      year:       gtField(raw, 'Year'),
-      month:      gtField(raw, 'Month'),
-      typeCode:   gtField(raw, 'Type (D/ F/ P)', 'Type(D/F/P)'),
-      runningNo:  gtField(raw, 'Running No.', 'Running No'),
-      inDMS:      infoCodes.has(code),
-    };
-    state.gtMap.set(code, rec);
-
-    if (!rec.inDMS) state.gtOrphans.push(code);
-
-    // Tier conflict check — CSV is source of truth
-    const csvTier = csvTierToLabel(csvCat.get(code));
-    if (rec.inDMS && csvTier && rec.gtTier && csvTier !== rec.gtTier) {
-      state.tierConflicts.push({ code, csvTier, gtTier: rec.gtTier });
-    }
+// Full multi-tier detail string (used by DMS Table / exports).
+// A tier can have several FOC prodcat rows that render identically — show each line once.
+function promoDetailText(promoCode) {
+  const rows = getDetail(promoCode);
+  if (!rows.length) return '';
+  const bu = buyUomOf(promoCode);
+  const seen = new Set();
+  const lines = [];
+  for (const r of rows) {
+    const line = detailStr(r, bu);
+    if (line && !seen.has(line)) { seen.add(line); lines.push(line); }
   }
+  return lines.join('\n');
 }
 
-function getGT(promoCode) { return state.gtMap?.get(promoCode) || null; }
+// Promo-level mechanic summary
+function promoMechanic(promoCode) {
+  const rows = getDetail(promoCode);
+  if (!rows.length) return '';
+  const types = [...new Set(rows.map(r => r.ptypeLabel))];
+  return types.join(' + ');
+}
 
-// Render GT enrichment block inside Promo Header (only if GT file loaded)
-function renderGTFields(code, info) {
-  const g = getGT(code);
-  if (!state.gt) return '';   // GT file not uploaded
-  if (!g) {
-    return `<div class="mt-4 pt-4 border-t border-slate-100">
-      <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">📗 GT Sales Controller</div>
-      <p class="text-sm text-slate-400 italic">Not present in GT file</p>
+// FOC level + codes for the DMS layout
+function focSummary(promoCode) {
+  const rows = getDetail(promoCode).filter(r => r.focCode);
+  if (!rows.length) return { level: '', codes: '' };
+  const levels = [...new Set(rows.map(r => r.focLevel))];
+  const label = levels.map(l => (l === 7 ? 'Product' : `Prodcat${l}`)).join(', ');
+  const codes = [...new Set(rows.map(r => r.focCode))].sort().join('\n');
+  return { level: label, codes };
+}
+
+// Promo mechanic block (from PROMO_DETAIL) — what you BUY and what you GET
+function renderMechanicSection(code) {
+  const rows = getDetail(code);
+  if (!rows.length) {
+    return `<div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 mb-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-slate-400 text-sm">\ud83c\udf81</span>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Promo Mechanic</h3>
+      </div>
+      <p class="text-sm text-slate-400 italic">No detail rows in PROMO_DETAIL for this promo</p>
     </div>`;
   }
-  const csvTier = csvTierToLabel(info['Category']);
-  const conflict = csvTier && g.gtTier && csvTier !== g.gtTier;
+  const bu = buyUomOf(code);
 
-  return `<div class="mt-4 pt-4 border-t border-slate-100">
-    <div class="flex items-center gap-2 mb-3">
-      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">📗 GT Sales Controller</span>
-      ${!g.inDMS ? '<span class="text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">⚠️ not in DMS yet</span>' : ''}
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-      ${kv('Group', g.group || '—')}
-      ${kv('Channel', g.channel || '—')}
-      ${kv('GT Status', g.gtStatus || '—')}
-      ${kv('GT Type', g.gtType || '—')}
-      ${kv('Tier (DMS)', csvTier || '—')}
-      <div class="flex gap-3">
-        <div class="kv-label w-40 flex-shrink-0">Tier (GT):</div>
-        <div class="flex-1 ${conflict ? 'text-amber-700 font-semibold' : 'kv-value'}">
-          ${esc(g.gtTier || '—')}
-          ${conflict ? '<span class="ml-2 text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">⚠️ conflict — DMS wins</span>' : ''}
-        </div>
+  // A tier can appear on several PROMO_DETAIL rows (one per FOC prodcat).
+  // Merge them so each tier renders once, with all its free SKUs together.
+  const byTier = new Map();
+  for (const r of rows) {
+    if (!byTier.has(r.tier)) byTier.set(r.tier, { ...r, focSkus: [...(r.focSkus || [])] });
+    else {
+      const t = byTier.get(r.tier);
+      for (const sku of (r.focSkus || [])) if (!t.focSkus.includes(sku)) t.focSkus.push(sku);
+    }
+  }
+  const tiers = Array.from(byTier.values()).sort((a, b) => a.tier - b.tier);
+  const anyFoc = tiers.some(r => r.focCode);
+
+  return `<div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 mb-4">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400 text-sm">\ud83c\udf81</span>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Promo Mechanic (${tiers.length} tier${tiers.length > 1 ? 's' : ''})</h3>
       </div>
-      ${kv('Max Count', g.maxCount || '—')}
-      ${kv('Shop Type Classification', g.shopType || '—')}
-      ${kv('Key Account Group', g.keyAccount || '—')}
-      ${kv('Sales Set by', g.salesSetBy || '—')}
-      ${kv('Sales', g.sales || '—')}
-      ${kv('FOC Set By', g.focSetBy || '—')}
-      ${kv('FOC', g.foc || '—')}
-      ${kv('Exclude', g.exclude || '—')}
+      <span class="metric-pill bg-slate-100 text-slate-700">${esc(promoMechanic(code))}</span>
     </div>
+    <div class="overflow-x-auto"><table class="data-table w-full text-sm">
+      <thead><tr>
+        <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Tier</th>
+        <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Type</th>
+        <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase whitespace-nowrap">Buy (${esc(bu || '\u2014')})</th>
+        <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Get</th>
+        ${anyFoc ? '<th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Free SKUs</th>' : ''}
+      </tr></thead>
+      <tbody>
+        ${tiers.map(r => {
+          let get = '';
+          if (r.ptype === '1') get = `<span class="font-semibold text-emerald-700">${fmtNum(r.focQty)} ${esc(r.focUom)}</span> free`;
+          else if (r.ptype === '2') get = `<span class="font-semibold text-emerald-700">\u0e3f${r.discount}</span> off`;
+          else if (r.ptype === '3') get = `<span class="font-semibold text-emerald-700">${r.discount}%</span> off`;
+          const skus = (r.focSkus || []).map(sku => {
+            const p = state.productMap.get(sku);
+            return `<div class="text-xs"><span class="font-mono text-slate-700">${esc(sku)}</span> <span class="text-slate-500">${esc(p?.['Product Description'] || '')}</span></div>`;
+          }).join('');
+          return `<tr>
+            <td class="px-3 py-2 font-medium">${r.tier}</td>
+            <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700">${esc(r.ptypeLabel)}</span></td>
+            <td class="px-3 py-2 text-right font-medium">${fmtNum(r.totalBuy)}</td>
+            <td class="px-3 py-2">${get}</td>
+            ${anyFoc ? `<td class="px-3 py-2 min-w-[240px]">${skus || '<span class="text-slate-300">\u2014</span>'}</td>` : ''}
+          </tr>`;
+        }).join('')}
+      </tbody></table></div>
   </div>`;
 }
-
-// Short values for tables
-function gtGroup(code) { const g = getGT(code); return g?.group || ''; }
-function gtChannel(code) { const g = getGT(code); return g?.channel || ''; }
 
 /* ============================================================
    DATA PROCESSING (expand prodcat, apply exclusions, build indexes)
    ============================================================ */
+// Expand a Prodcat Code into real SKUs.
+// Level 7 = the code IS a Product Code. Levels 1-6 = prefix match on Prodcat 10 Code.
+function expandProdcat(level, code) {
+  const lvl = parseInt(level);
+  code = String(code).trim();
+  if (!code || !state.productMap) return [];
+  if (lvl === 7) return state.productMap.has(code) ? [code] : [];
+  const out = [];
+  for (const p10 of state.allP10) {
+    if (p10.startsWith(code)) out.push(...(state.prodByP10.get(p10) || []));
+  }
+  return out;
+}
+
 function buildIndexes() {
   const { info, assign, excl, product } = state;
 
@@ -638,20 +644,6 @@ function buildIndexes() {
     }
   }
   state.productToExclusions = productToExclusions;
-
-  // Expand assignments
-  const expandProdcat = (level, code) => {
-    const lvl = parseInt(level);
-    code = String(code).trim();
-    if (lvl === 7) return state.productMap.has(code) ? [code] : [];
-    const out = [];
-    for (const p10 of state.allP10) {
-      if (p10.startsWith(code)) {
-        out.push(...(state.prodByP10.get(p10) || []));
-      }
-    }
-    return out;
-  };
 
   state.expanded = [];
   state.missingProdcat = [];
@@ -750,8 +742,8 @@ function buildIndexes() {
     }
   }
 
-  // Build GT enrichment index (optional 6th file)
-  buildGTIndex();
+  // Build the GET-side index from PROMO_DETAIL
+  buildDetailIndex();
 }
 
 // Return summary object with sorted arrays
@@ -902,17 +894,43 @@ function renderCustList(promoCode) {
     if (custPageState.page < totalPages) { custPageState.page++; renderCustList(promoCode); }
   });
 }
+// Only the flags that actually carry signal in the data.
+// (MRP / TDR / QPS / RANGE / COMBI / BASIC_DISC are 0 or empty for every row.)
 function schemeFlags(row) {
   const cols = {
-    'SCHEME MRP':'MRP','SCHEME TDR':'TDR','SCHEME QPS':'QPS','SCHEME PRORATA':'Prorata',
-    'SCHEME RANGE':'Range','SCHEME COMBI':'Combi','SCHEME DYNAMIC':'Dynamic','BASIC_DISC':'Basic Disc',
-    'FOC_RECURRING':'FOC Recurring','MAX_COUNT_FLAG':'Max Count'
+    'SCHEME PRORATA': 'Prorata',
+    'DISC_METHOD': 'Disc Method',
+    'FOC_RECURRING': 'FOC Recurring',
+    'MAX_COUNT_FLAG': 'Max Count',
+    'FOR_EVERY_FLAG': 'For Every',
   };
   const flags = [];
   for (const [k, v] of Object.entries(cols)) {
-    if (row[k] && String(row[k]) === '1') flags.push(v);
+    if (row[k] != null && String(row[k]).trim() === '1') flags.push(v);
   }
   return flags.join(' + ') || '–';
+}
+
+// Tier label from CSV Category:  "TIER3" -> "Tier 3"
+function csvTierToLabel(cat) {
+  const m = String(cat ?? '').trim().match(/TIER\s*(\d+)/i);
+  return m ? `Tier ${m[1]}` : '';
+}
+
+// Group from CSV PROMO_GROUP (GR01 -> G1) — verified 100% against Sales Controller
+function promoGroup(promoCode) {
+  const r = state.info.find(x => String(x['Promotion Code']).trim() === promoCode);
+  const g = String(r?.['PROMO_GROUP'] ?? '').trim();
+  const m = g.match(/^GR0*(\d+)$/i);
+  return m ? `G${m[1]}` : g;
+}
+
+// Max Count from CSV (real number, not a flag)
+function maxCountOf(info) {
+  const flag = String(info['MAX_COUNT_FLAG'] ?? '').trim();
+  const n = parseInt(info['MAX_COUNT']) || 0;
+  if (flag !== '1' || !n) return '—';
+  return String(n);
 }
 
 function renderPromo(code) {
@@ -968,25 +986,26 @@ function renderPromo(code) {
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
         ${kv('Description', info['Promotion Description'])}
-        ${kv('T-Plan Number', info['T-Plan Number'])}
         ${kv('Start Date', info['Promotion Start Date'])}
         ${kv('End Date', info['Promotion End Date'])}
-        ${kv('Type / Category', `${info['Type'] || ''} / ${info['Category'] || ''}`)}
-        ${kv('Buy Type / UOM', `${info['Buy Type'] || ''} / ${info['Buy UOM'] || ''}`)}
-        ${kv('Claim Type', info['Claim Type'])}
-        ${kv('Budget', info['Budget'] ? fmtNum(info['Budget']) : '–')}
+        ${kv('Tier', csvTierToLabel(info['Category']))}
+        ${kv('Group', promoGroup(code) || '—')}
+        ${kv('Mechanic', promoMechanic(code) || '—')}
+        ${kv('Buy Type / UOM', `${info['Buy Type'] || ''} / ${info['Buy UOM'] || '—'}`)}
+        ${kv('Max Count', maxCountOf(info))}
+        ${kv('Budget', parseFloat(info['Budget']) ? fmtNum(info['Budget']) : '–')}
         ${kv('Scheme Flags', schemeFlags(info))}
         ${kv('Status', info['Status'])}
-        ${kv('Notes', info['Notes'])}
-        ${kv('Approval Ref', info['Approval Reference'])}
       </div>
-      ${renderGTFields(code, info)}
       <div class="flex flex-wrap gap-2 mt-5 pt-5 border-t border-slate-100">
         <span class="metric-pill bg-slate-100 text-slate-700"># Tiers: ${numTiers}</span>
         <span class="metric-pill bg-emerald-50 text-emerald-800"># Eligible SKUs: ${fmtNum(eligibleProducts.length)}</span>
         <span class="metric-pill bg-amber-50 text-amber-800"># Excluded SKUs: ${fmtNum(excludedRows.length)}</span>
       </div>
     </div>
+
+    <!-- Promo Mechanic (what you buy / what you get) -->
+    ${renderMechanicSection(code)}
 
     <!-- Applies to -->
     ${renderAppliesToSection(code, 'promo')}
@@ -1037,7 +1056,6 @@ function renderPromo(code) {
             <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Product Description</th>
             <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Prodcat 10 Code</th>
             <th class="text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Status</th>
-            <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Ex-Factory Price</th>
           </tr></thead>
           <tbody id="promoSec3Body">
             ${productRows.map(p => `<tr data-search="${esc((p.code + ' ' + p.desc + ' ' + p.p10).toLowerCase())}">
@@ -1045,7 +1063,6 @@ function renderPromo(code) {
               <td class="px-3 py-2">${esc(p.desc)}</td>
               <td class="px-3 py-2 font-mono text-xs text-slate-600">${esc(p.p10)}</td>
               <td class="px-3 py-2 text-center">${esc(p.status)}</td>
-              <td class="px-3 py-2 text-right">${fmtCurr(p.price)}</td>
             </tr>`).join('')}
           </tbody></table></div>`}
     </div>
@@ -1117,6 +1134,7 @@ function renderProduct(code) {
   const eligiblePromos = filterPromos(eligiblePromosAll);
   const excludedPromosAll = Array.from(state.productToExclusions.get(code) || []);
   const excludedPromos = filterPromos(excludedPromosAll);
+  const focPromos = filterPromos(Array.from(state.focByProduct.get(code) || []));
 
   // Enrich eligible promos with tier info
   const eligibleRows = [];
@@ -1154,13 +1172,12 @@ function renderProduct(code) {
         ${kv('Product Description', p['Product Description'])}
         ${kv('Prodcat 10 Code', p['Prodcat 10 Code'])}
         ${kv('Status', p['Status of the Product'])}
-        ${kv('Base Product', p['Base Product'])}
-        ${kv('BI UOM', p['BI UOM'])}
-        ${kv('Ex-Factory Price', p['Ex-Factory Price'] ? fmtCurr(parseFloat(p['Ex-Factory Price'])) : '–')}
+        ${kv('BI UOM', p['BI UOM'] || '—')}
       </div>
       <div class="flex flex-wrap gap-2 mt-5 pt-5 border-t border-slate-100">
         <span class="metric-pill bg-emerald-50 text-emerald-800"># Promos Eligible: ${fmtNum(eligiblePromos.length)}</span>
         <span class="metric-pill bg-amber-50 text-amber-800"># Promos Excluded: ${fmtNum(excludedPromos.length)}</span>
+        <span class="metric-pill bg-sky-50 text-sky-800">\ud83c\udf81 Given free in: ${fmtNum(focPromos.length)}</span>
       </div>
     </div>
 
@@ -1228,6 +1245,42 @@ function renderProduct(code) {
             </tr>`).join('')}
           </tbody></table></div>`}
     </div>
+
+    <!-- Given free in these promos (FOC) -->
+    <div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 mb-4">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-sky-600 text-sm">\ud83c\udf81</span>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Given Free In (${fmtNum(focPromos.length)})</h3>
+      </div>
+      ${focPromos.length === 0 ? '<p class="text-sm text-slate-400 italic">This SKU is not given away free in any promo</p>' :
+        `<div class="overflow-x-auto max-h-[400px] overflow-y-auto"><table class="data-table w-full text-sm">
+          <thead><tr>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Promo Code</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Description</th>
+            <th class="text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Tier</th>
+            <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Buy</th>
+            <th class="text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Free Qty</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Start</th>
+            <th class="text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase">End</th>
+          </tr></thead>
+          <tbody>
+            ${focPromos.flatMap(pc => {
+              const inf = state.info.find(x => String(x['Promotion Code']).trim() === pc);
+              const bu = buyUomOf(pc);
+              return getDetail(pc)
+                .filter(d => (d.focSkus || []).includes(code))
+                .map(d => `<tr>
+                  <td class="px-3 py-2 font-mono font-medium">${esc(pc)}</td>
+                  <td class="px-3 py-2">${esc(state.promoDesc.get(pc) || '')}</td>
+                  <td class="px-3 py-2 text-center">${d.tier}</td>
+                  <td class="px-3 py-2 text-right">${fmtNum(d.totalBuy)} ${esc(bu)}</td>
+                  <td class="px-3 py-2 text-right font-semibold text-sky-700">${fmtNum(d.focQty)} ${esc(d.focUom)}</td>
+                  <td class="px-3 py-2 text-xs">${esc(inf?.['Promotion Start Date'] || '')}</td>
+                  <td class="px-3 py-2 text-xs">${esc(inf?.['Promotion End Date'] || '')}</td>
+                </tr>`);
+            }).join('')}
+          </tbody></table></div>`}
+    </div>
   `;
 
   const filterInput = document.getElementById('prodEligFilter');
@@ -1264,11 +1317,10 @@ async function handleFiles(fileList) {
   if (missing.length > 0) {
     Swal.fire({
       icon: 'warning', title: 'Missing files',
-      html: `Need all 5 required CSV files:<br><br>` +
+      html: `Need all 6 CSV files:<br><br>` +
         Object.entries(FILE_MAP).map(([k]) =>
-          `<div class="text-left font-mono text-sm">${classified[k] ? '✅' : '❌'} ${k.toUpperCase()} <span class="text-slate-400">— ${classified[k] ? esc(classified[k].name) : 'missing'}</span></div>`
+          `<div class="text-left font-mono text-sm">${classified[k] ? '\u2705' : '\u274c'} ${k.toUpperCase()} <span class="text-slate-400">\u2014 ${classified[k] ? esc(classified[k].name) : 'missing'}</span></div>`
         ).join('') +
-        `<div class="text-left font-mono text-sm mt-2 pt-2 border-t border-slate-200">${classified.gt ? '✅' : '➖'} GT (optional) <span class="text-slate-400">— ${classified.gt ? esc(classified.gt.name) : 'not provided'}</span></div>` +
         (unmatched.length ? `<br><div class="text-left text-xs text-slate-500">Unrecognized: ${unmatched.map(esc).join(', ')}</div>` : ''),
       confirmButtonColor: '#1e293b',
     });
@@ -1280,22 +1332,13 @@ async function handleFiles(fileList) {
 
   try {
     state.info       = await parseFile(classified.info);
+    state.detail     = await parseFile(classified.detail);
     state.assign     = await parseFile(classified.assign);
     state.excl       = await parseFile(classified.excl);
     state.product    = await parseFile(classified.product);
     Swal.update({ html: '<div class="text-slate-500">Parsing PROMO_ASSIGNMENT (large file)...</div>' });
     await new Promise(r => setTimeout(r, 50));
     state.custAssign = await parseFile(classified.custAssign);
-
-    // Optional GT Excel
-    if (classified.gt) {
-      Swal.update({ html: '<div class="text-slate-500">Parsing GT Promotion Code (Excel)...</div>' });
-      await new Promise(r => setTimeout(r, 50));
-      state.gt = await parseGTFile(classified.gt);
-    } else {
-      state.gt = null;
-    }
-
     Swal.update({ html: '<div class="text-slate-500">Expanding prodcat assignments & applying exclusions...</div>' });
     await new Promise(r => setTimeout(r, 50));
     buildIndexes();
@@ -1305,7 +1348,7 @@ async function handleFiles(fileList) {
     state.dataLoadedAt = savedAt;
     await idbSet('raw', {
       info: state.info, assign: state.assign, excl: state.excl,
-      product: state.product, custAssign: state.custAssign, gt: state.gt,
+      detail: state.detail, product: state.product, custAssign: state.custAssign,
       savedAt,
     });
 
@@ -1320,13 +1363,11 @@ async function handleFiles(fileList) {
         <div><b>${fmtNum(state.assign.length)}</b> assignment lines</div>
         <div><b>${fmtNum(state.excl.length)}</b> exclusion lines</div>
         <div><b>${fmtNum(state.custAssign.length)}</b> customer assignment lines</div>
-        ${state.gt ? `<div class="text-emerald-700"><b>${fmtNum(state.gt.length)}</b> GT rows (enrichment)</div>` : '<div class="text-slate-400">GT file: not provided</div>'}
+        <div><b>${fmtNum(state.detail.length)}</b> detail rows (discount / FOC)</div>
         <div class="pt-2 mt-2 border-t border-slate-200">
-          <b>${fmtNum(state.expanded.length)}</b> eligible (promo × SKU) pairs<br>
+          <b>${fmtNum(state.expanded.length)}</b> eligible (promo \u00d7 SKU) pairs<br>
           <span class="text-slate-500">${fmtNum(state.removedByExcl)} pairs removed by exclusion</span><br>
           <span class="text-amber-600">${fmtNum(state.missingProdcat.length)} prodcat lines with no SKU match</span>
-          ${state.tierConflicts.length ? `<br><span class="text-amber-600">${fmtNum(state.tierConflicts.length)} Tier conflicts (GT vs DMS)</span>` : ''}
-          ${state.gtOrphans.length ? `<br><span class="text-amber-600">${fmtNum(state.gtOrphans.length)} GT promos not in DMS yet</span>` : ''}
         </div>
       </div>`,
       confirmButtonColor: '#1e293b', timer: 5000, timerProgressBar: true,
@@ -1414,16 +1455,22 @@ async function exportExcel(includeDetail) {
       const asum = getAssignmentSummary(code);
       return {
         'Promotion Code': code, 'Promotion Description': r['Promotion Description'],
-        'T-Plan Number': r['T-Plan Number'], 'Start Date': r['Promotion Start Date'],
-        'End Date': r['Promotion End Date'], 'Type': r['Type'], 'Category': r['Category'],
-        'Buy Type': r['Buy Type'], 'Buy UOM': r['Buy UOM'], 'Claim Type': r['Claim Type'],
-        'Budget': parseFloat(r['Budget']) || 0, 'Scheme Flags': schemeFlags(r),
-        'Status': r['Status'], 'Notes': r['Notes'], 'Approval Reference': r['Approval Reference'],
+        'Start Date': r['Promotion Start Date'], 'End Date': r['Promotion End Date'],
+        'Promo Type': parsePromoCode(code).type,
+        'Tier': csvTierToLabel(r['Category']),
+        'Group': promoGroup(code),
+        'Mechanic': promoMechanic(code),
+        'Promotion Detail': promoDetailText(code),
+        'Buy Type': r['Buy Type'], 'Buy UOM': r['Buy UOM'],
+        'Max Count': maxCountOf(r),
+        'Budget': parseFloat(r['Budget']) || 0,
+        'Scheme Flags': schemeFlags(r),
+        'Status': r['Status'],
+        'Shop Type': deriveShopType(code),
         '# Tiers': tiers, '# Eligible SKUs': eligible, '# Excluded SKUs': excluded,
         '# Channels': asum.channels.length, '# Distributors': asum.distributors.length,
         '# Business Types': asum.businessTypes.length, '# Customers': asum.custCount,
-        'Channels': asum.channels.join(', '), 'Distributors': asum.distributors.join(', '),
-        'Business Types': asum.businessTypes.join(', '),
+        'Distributors': asum.distributors.join(', '),
       };
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(promoHeaderRows), 'Promo_Header');
@@ -1431,13 +1478,57 @@ async function exportExcel(includeDetail) {
     // Promo_Tier_Detail
     const tierRows = state.tierDetail
       .filter(t => isActivePromo(t.promo))
-      .map(t => ({
-      'Promotion Code': t.promo, 'Promotion Description': t.promoDesc,
-      'Promo Index': t.tier, 'Prodcat Level': t.level, 'Prodcat Code': t.prodcat,
-      'UOM': t.uom, 'Min Qty': t.minQty, 'Must': t.must,
-      '# Eligible SKUs (after exclude)': t.skuCount,
-    }));
+      .map(t => {
+        const d = getDetail(t.promo).find(x => x.tier === t.tier);
+        return {
+          'Promotion Code': t.promo, 'Promotion Description': t.promoDesc,
+          'Promo Index': t.tier, 'Prodcat Level': t.level, 'Prodcat Code': t.prodcat,
+          'UOM': t.uom, 'Min Qty': t.minQty, 'Must': t.must,
+          '# Eligible SKUs (after exclude)': t.skuCount,
+          'Promo Type': d?.ptypeLabel || '',
+          'Total Buy': d?.totalBuy ?? '',
+          'Discount': d?.discount ?? '',
+          'FOC Code': d?.focCode || '',
+          'FOC Qty': d?.focQty ?? '',
+          'FOC UOM': d?.focUom || '',
+        };
+      });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tierRows), 'Promo_Tier_Detail');
+
+    // Promo_Detail — the GET side, expanded to real SKUs
+    const detailRows = [];
+    for (const [promo, recs] of state.detailByPromo.entries()) {
+      if (!isActivePromo(promo)) continue;
+      const bu = buyUomOf(promo);
+      for (const d of recs) {
+        const base = {
+          'Promotion Code': promo,
+          'Promotion Description': state.promoDesc.get(promo) || '',
+          'Promo Index': d.tier,
+          'Promo Type': d.ptypeLabel,
+          'Total Buy': d.totalBuy,
+          'Buy UOM': bu,
+          'Discount': d.discount,
+          'FOC Prodcat Level': d.focLevel || '',
+          'FOC Prodcat Code': d.focCode || '',
+          'FOC Qty': d.focQty || '',
+          'FOC UOM': d.focUom || '',
+          'Detail': detailStr(d, bu),
+        };
+        if (d.focSkus && d.focSkus.length) {
+          for (const sku of d.focSkus) {
+            const pr = state.productMap.get(sku) || {};
+            detailRows.push({ ...base,
+              'FOC Product Code': sku,
+              'FOC Product Description': pr['Product Description'] || '',
+            });
+          }
+        } else {
+          detailRows.push({ ...base, 'FOC Product Code': '', 'FOC Product Description': '' });
+        }
+      }
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailRows), 'Promo_Detail');
 
     // Product_Summary
     const productRows = state.product
@@ -1449,9 +1540,9 @@ async function exportExcel(includeDetail) {
       return {
         'Product Code': code, 'Product Description': p['Product Description'],
         'Prodcat 10 Code': p['Prodcat 10 Code'], 'Product Status': p['Status of the Product'],
-        'Base Product': p['Base Product'], 'BI UOM': p['BI UOM'],
-        'Ex-Factory Price': parseFloat(p['Ex-Factory Price']) || 0,
+        'BI UOM': p['BI UOM'],
         '# Promos Eligible': eligible, '# Promos Excluded': excluded,
+        '# Promos Giving It Free': (state.focByProduct.get(code) || new Set()).size,
       };
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productRows), 'Product_Summary');
@@ -1469,7 +1560,6 @@ async function exportExcel(includeDetail) {
           'UOM': x.uom, 'Min Qty': x.minQty, 'Must': x.must,
           'Product Code': x.productCode, 'Product Description': p['Product Description'] || '',
           'Prodcat 10 Code': p['Prodcat 10 Code'] || '', 'Product Status': p['Status of the Product'] || '',
-          'Ex-Factory Price': parseFloat(p['Ex-Factory Price']) || 0,
         };
       });
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailRows), 'Promo_Product_Detail');
@@ -1789,17 +1879,18 @@ function buildPromoSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR) {
   // Header key-value pairs
   const fields = [
     ['Description', info['Promotion Description']],
-    ['T-Plan Number', info['T-Plan Number']],
     ['Start Date', info['Promotion Start Date']],
     ['End Date', info['Promotion End Date']],
-    ['Type / Category', `${info['Type'] || ''} / ${info['Category'] || ''}`],
-    ['Buy Type / UOM', `${info['Buy Type'] || ''} / ${info['Buy UOM'] || ''}`],
-    ['Claim Type', info['Claim Type']],
+    ['Promo Type', parsePromoCode(code).type],
+    ['Tier', csvTierToLabel(info['Category'])],
+    ['Group', promoGroup(code) || '—'],
+    ['Mechanic', promoMechanic(code) || '—'],
+    ['Promotion Detail', promoDetailText(code) || '—'],
+    ['Buy Type / UOM', `${info['Buy Type'] || ''} / ${info['Buy UOM'] || '—'}`],
+    ['Max Count', maxCountOf(info)],
     ['Budget', parseFloat(info['Budget']) || 0],
     ['Scheme Flags', schemeFlags(info)],
     ['Status', info['Status']],
-    ['Notes', info['Notes']],
-    ['Approval Ref', info['Approval Reference']],
   ];
   let r = 4;
   for (const [label, val] of fields) {
@@ -1883,7 +1974,7 @@ function buildPromoSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR) {
   }).sort((a,b) => a.code.localeCompare(b.code));
   sectionTitle(ws, r, `✅ SECTION 3 — ELIGIBLE SKUs (${productRows.length})`, TEAL);
   r++;
-  tableHeader(ws, r, ['Product Code', 'Product Description', 'Prodcat 10 Code', 'Status', 'Ex-Factory Price'], NAVY);
+  tableHeader(ws, r, ['Product Code', 'Product Description', 'Prodcat 10 Code', 'Status'], NAVY);
   r++;
   for (const p of productRows) {
     ws.getCell(r, 1).value = p.code;
@@ -1892,8 +1983,6 @@ function buildPromoSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR) {
     ws.getCell(r, 3).value = p.p10;
     ws.getCell(r, 3).font = { name: 'Consolas', size: 10 };
     ws.getCell(r, 4).value = p.status;
-    ws.getCell(r, 5).value = p.price;
-    ws.getCell(r, 5).numFmt = '#,##0.00;-#,##0.00;-';
     r++;
   }
   if (productRows.length === 0) { ws.getCell(r, 1).value = '(no eligible SKUs)'; ws.getCell(r, 1).font = { italic: true, color: { argb: 'FF94A3B8' } }; r++; }
@@ -1946,14 +2035,12 @@ function buildProductSheet(wb, sheetName, code, NAVY, TEAL, GOLD, SUB, HDR) {
     ['Product Description', p['Product Description']],
     ['Prodcat 10 Code', p['Prodcat 10 Code']],
     ['Status', p['Status of the Product']],
-    ['Base Product', p['Base Product']],
-    ['BI UOM', p['BI UOM']],
-    ['Ex-Factory Price', parseFloat(p['Ex-Factory Price']) || 0],
+    ['BI UOM', p['BI UOM'] || '—'],
+    ['Given free in', `${(state.focByProduct.get(code) || new Set()).size} promos`],
   ];
   let r = 4;
   for (const [label, val] of fields) {
     kvRow(ws, r, label, val, SUB);
-    if (label === 'Ex-Factory Price') ws.getCell(r, 2).numFmt = '#,##0.00;-#,##0.00;-';
     r++;
   }
 
@@ -2240,8 +2327,8 @@ function applyDateFilter() {
         status: r['Status'] || '', eligible, excluded,
         schemeFlags: schemeFlags(r),
         appliesTo: assignmentShort(code),
-        group: gtGroup(code),
-        gtChannel: gtChannel(code),
+        group: promoGroup(code),
+        mechanic: promoMechanic(code),
       });
     }
   }
@@ -2285,8 +2372,8 @@ function renderDateFilterResults() {
             <th data-sort="startDate" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap">Start${si('startDate')}</th>
             <th data-sort="endDate" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap">End${si('endDate')}</th>
             <th data-sort="status" class="df-sort text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">Status${si('status')}</th>
-            ${state.gt ? `<th data-sort="group" class="df-sort text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">Group${si('group')}</th>
-            <th data-sort="gtChannel" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap">Channel${si('gtChannel')}</th>` : ''}
+            <th data-sort="group" class="df-sort text-center px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100">Group${si('group')}</th>
+            <th data-sort="mechanic" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap">Mechanic${si('mechanic')}</th>
             <th data-sort="schemeFlags" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap">Scheme${si('schemeFlags')}</th>
             <th data-sort="appliesTo" class="df-sort text-left px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap">Applies to${si('appliesTo')}</th>
             <th data-sort="eligible" class="df-sort text-right px-3 py-2 text-xs font-semibold text-slate-600 uppercase cursor-pointer hover:bg-slate-100"># Elig${si('eligible')}</th>
@@ -2301,8 +2388,8 @@ function renderDateFilterResults() {
               <td class="px-3 py-2 text-xs whitespace-nowrap">${esc(r.startDate)}</td>
               <td class="px-3 py-2 text-xs whitespace-nowrap">${esc(r.endDate)}</td>
               <td class="px-3 py-2 text-center">${esc(r.status)}</td>
-              ${state.gt ? `<td class="px-3 py-2 text-center font-mono text-xs">${esc(r.group || '—')}</td>
-              <td class="px-3 py-2 text-xs whitespace-nowrap">${esc(r.gtChannel || '—')}</td>` : ''}
+              <td class="px-3 py-2 text-center font-mono text-xs">${esc(r.group || '—')}</td>
+              <td class="px-3 py-2 text-xs whitespace-nowrap">${esc(r.mechanic || '—')}</td>
               <td class="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">${esc(r.schemeFlags || '—')}</td>
               <td class="px-3 py-2 text-xs text-slate-600 min-w-[180px]">${esc(r.appliesTo)}</td>
               <td class="px-3 py-2 text-right">${fmtNum(r.eligible)}</td>
@@ -2431,200 +2518,21 @@ function parsePromoCode(code) {
   return { year: m[1], month: m[2], type: m[3].toUpperCase(), running: m[4] };
 }
 
-// Derive Sales Level ("Prodcat3" / "Product") + Sales Codes from PRODASSIGN
+// Derive Sales Level ("Prodcat5" / "Product") + Sales Codes from PRODASSIGN
 function deriveSalesLevelAndCode(promoCode) {
   const rows = state.tierDetail.filter(t => t.promo === promoCode);
   if (rows.length === 0) return { level: '', codes: '' };
   const levels = [...new Set(rows.map(r => r.level))];
-  const label = levels.length === 1
-    ? (levels[0] === 7 ? 'Product' : `Prodcat${levels[0]}`)
-    : levels.map(l => l === 7 ? 'Product' : `Prodcat${l}`).join(', ');
+  const label = levels.map(l => (l === 7 ? 'Product' : `Prodcat${l}`)).join(', ');
   const codes = [...new Set(rows.map(r => r.prodcat))].sort().join('\n');
   return { level: label, codes };
 }
 
-// Shop Type — always derived from PROMO_ASSIGNMENT (Hierarchy 3) = the system of record
+// Shop Type from PROMO_ASSIGNMENT (Hierarchy 3) — the system of record
 function deriveShopType(promoCode) {
   const a = state.promoAssignments?.get(promoCode);
   if (!a) return '';
   return Array.from(a.channels).sort().join(', ');
-}
-
-// Promotion Detail — derive best-effort from tier conditions
-function derivePromotionDetail(promoCode) {
-  const tiers = state.tierDetail.filter(t => t.promo === promoCode);
-  if (tiers.length === 0) return '';
-  const byTier = new Map();
-  for (const t of tiers) {
-    if (!byTier.has(t.tier)) byTier.set(t.tier, t);
-  }
-  return Array.from(byTier.values())
-    .sort((a, b) => a.tier - b.tier)
-    .map(t => `${fmtNum(t.minQty)} ${t.uom}`)
-    .join('\n');
-}
-
-async function exportDMSFormat() {
-  Swal.fire({ title: 'Building DMS Format...', html: '<div class="text-slate-500">Deriving columns</div>',
-    allowOutsideClick: false, didOpen: () => Swal.showLoading(), showConfirmButton: false });
-  await new Promise(r => setTimeout(r, 50));
-
-  try {
-    // Universe: all promos in PROMO_INFO (respects Active filter) + GT orphans
-    const rows = [];
-    for (const r of state.info) {
-      const code = String(r['Promotion Code']).trim();
-      if (!code || !isActivePromo(code)) continue;
-      const g = getGT(code);
-      const pc = parsePromoCode(code);
-      const sl = deriveSalesLevelAndCode(code);
-      const excl = state.excl.filter(x => String(x['Promotion Code']).trim() === code);
-      const exclCodes = [...new Set(excl.map(x => String(x['Excluded Product Code']).trim()))].sort();
-      const csvTier = csvTierToLabel(r['Category']);
-      const conflict = g?.gtTier && csvTier && g.gtTier !== csvTier;
-
-      rows.push({
-        promoOfMonth: g ? `${g.month || pc.month}` : pc.month,
-        year: g?.year || pc.year,
-        month: g?.month || pc.month,
-        typeCode: g?.typeCode || pc.type,
-        running: g?.runningNo || pc.running,
-        channel: g?.channel || '',
-        code,
-        desc: r['Promotion Description'] || '',
-        start: r['Promotion Start Date'] || '',
-        end: r['Promotion End Date'] || '',
-        tier: csvTier,                              // DMS is source of truth
-        tierGT: g?.gtTier || '',
-        tierConflict: conflict,
-        group: g?.group || '',
-        maxCount: g?.maxCount || (String(r['MAX_COUNT_FLAG']) === '1' ? 'Y' : ''),
-        promoDetail: derivePromotionDetail(code),
-        shopType: deriveShopType(code),
-        keyAccount: g?.keyAccount || '',
-        salesLevel: sl.level,
-        salesCode: sl.codes,
-        focLevel: g?.focSetBy || '',
-        focCode: g?.foc || '',
-        exclusionYN: exclCodes.length > 0 ? 'Y' : 'N',
-        exclusionCode: exclCodes.join('\n'),
-        status: r['Status'] || '',
-        inGT: !!g,
-      });
-    }
-
-    // Append GT orphans (in GT but not in PROMO_INFO)
-    for (const oc of (state.gtOrphans || [])) {
-      const g = getGT(oc);
-      if (!g) continue;
-      const pc = parsePromoCode(oc);
-      rows.push({
-        promoOfMonth: g.month || pc.month, year: g.year || pc.year, month: g.month || pc.month,
-        typeCode: g.typeCode || pc.type, running: g.runningNo || pc.running,
-        channel: g.channel || '', code: oc, desc: '', start: '', end: '',
-        tier: '', tierGT: g.gtTier || '', tierConflict: false,
-        group: g.group || '', maxCount: g.maxCount || '', promoDetail: '',
-        shopType: g.shopType || '', keyAccount: g.keyAccount || '',
-        salesLevel: g.salesSetBy || '', salesCode: g.sales || '',
-        focLevel: g.focSetBy || '', focCode: g.foc || '',
-        exclusionYN: g.exclude || '', exclusionCode: '',
-        status: g.gtStatus || '', inGT: true, notInDMS: true,
-      });
-    }
-
-    rows.sort((a, b) => a.code.localeCompare(b.code));
-
-    Swal.update({ html: '<div class="text-slate-500">Formatting Excel...</div>' });
-    await new Promise(r => setTimeout(r, 50));
-
-    const wb = new ExcelJS.Workbook();
-    const NAVY = 'FF1E293B', AMBER = 'FFFEF3C7', GREEN = 'FFD1FAE5';
-    const ws = wb.addWorksheet('DMS Format', { views: [{ state: 'frozen', xSplit: 0, ySplit: 3 }] });
-
-    const headers = [
-      'Promotion of month','Year','Month','Type\n(D/ F/ P)','Running No.','Channel',
-      'Promo Code','Promo Description (THA)','Start\nDate','End\nDate',
-      'Tier','Group','Max\nCount','Promotion Detail','Shop\nType','Key Account Group',
-      'Sales\nLevel','Sales\nCode','FOC\nLevel','FOC Code','Exclusion\n(Y/ N)','Exclusion\nCode',
-    ];
-    const widths = [16,7,8,10,12,12,14,45,12,12,9,9,10,22,30,18,12,30,12,18,11,30];
-    ws.columns = widths.map(w => ({ width: w }));
-
-    // Title
-    const t = ws.getCell('A1');
-    t.value = `Promotion Code — DMS Format (${rows.length} promos)`;
-    t.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Arial' };
-    t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-    t.alignment = { vertical: 'middle', indent: 1 };
-    ws.mergeCells(1, 1, 1, headers.length);
-    ws.getRow(1).height = 26;
-
-    const filterInfo = filterState.activePromo ? 'Active promos only' : 'All promos';
-    ws.getCell('A2').value = `${filterInfo} · GT enrichment: ${state.gt ? 'YES' : 'NO'} · Generated: ${new Date().toLocaleString()}` +
-      (state.tierConflicts.length ? ` · ⚠️ ${state.tierConflicts.length} Tier conflicts (DMS value used, GT highlighted)` : '');
-    ws.getCell('A2').font = { italic: true, size: 9, color: { argb: 'FF64748B' }, name: 'Arial' };
-    ws.mergeCells(2, 1, 2, headers.length);
-
-    headers.forEach((h, i) => {
-      const c = ws.getCell(3, i + 1);
-      c.value = h;
-      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Arial' };
-      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    });
-    ws.getRow(3).height = 30;
-
-    let r = 4;
-    for (const row of rows) {
-      const vals = [
-        row.promoOfMonth, row.year, row.month, row.typeCode, row.running, row.channel,
-        row.code, row.desc, row.start, row.end,
-        row.tier, row.group, row.maxCount, row.promoDetail, row.shopType, row.keyAccount,
-        row.salesLevel, row.salesCode, row.focLevel, row.focCode, row.exclusionYN, row.exclusionCode,
-      ];
-      vals.forEach((v, i) => {
-        const c = ws.getCell(r, i + 1);
-        c.value = v ?? '';
-        c.font = { size: 10, name: 'Arial' };
-        c.alignment = { vertical: 'top', wrapText: true };
-      });
-      // Promo Code monospace + bold
-      ws.getCell(r, 7).font = { name: 'Consolas', size: 10, bold: true };
-      // Highlight tier conflict
-      if (row.tierConflict) {
-        ws.getCell(r, 11).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBER } };
-        ws.getCell(r, 11).note = `GT says "${row.tierGT}" — DMS value used`;
-      }
-      // Highlight GT orphan rows
-      if (row.notInDMS) {
-        for (let c = 1; c <= headers.length; c++) {
-          ws.getCell(r, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN } };
-        }
-        ws.getCell(r, 7).note = 'In GT file but not in DMS (PROMO_INFO) yet';
-      }
-      r++;
-    }
-    ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: r - 1, column: headers.length } };
-
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const ts = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    a.href = url; a.download = `Promotion_Code_DMS_Format_${ts}.xlsx`; a.click();
-    URL.revokeObjectURL(url);
-
-    Swal.fire({ icon: 'success', title: 'DMS Format exported',
-      html: `<div class="text-sm text-slate-600 text-left">
-        <b>${rows.length}</b> promos · 22 columns<br>
-        ${state.gt ? '' : '<span class="text-amber-600">⚠️ GT file not loaded — Group/Channel/FOC will be blank</span><br>'}
-        ${state.tierConflicts.length ? `<span class="text-amber-600">⚠️ ${state.tierConflicts.length} Tier conflicts highlighted (DMS value used)</span>` : ''}
-      </div>`,
-      confirmButtonColor: '#1e293b' });
-  } catch (err) {
-    console.error(err);
-    Swal.fire({ icon: 'error', title: 'Export failed', text: err.message, confirmButtonColor: '#1e293b' });
-  }
 }
 
 /* ============================================================
@@ -2694,21 +2602,12 @@ function updateFilterBar() {
   const productCount = filterState.activeProductSet.size;
   let html = `<span class="font-medium">${fmtNum(promoCount)}</span>/${fmtNum(state.info.length)} active promos · ` +
     `<span class="font-medium">${fmtNum(productCount)}</span>/${fmtNum(state.product.length)} active products`;
-  if (state.gt) {
-    html += ` · <span class="text-emerald-700">📗 GT: ${fmtNum(state.gt.length)} rows</span>`;
-  }
   document.getElementById('filterStats').innerHTML = html;
 
   const noteEl = document.getElementById('filterMissingNote');
   const notes = [];
   if (filterState.missingDatesCount > 0 && filterState.activePromo) {
     notes.push(`⚠️ ${fmtNum(filterState.missingDatesCount)} promo${filterState.missingDatesCount > 1 ? 's' : ''} excluded from active list (missing Start or End Date)`);
-  }
-  if (state.tierConflicts?.length) {
-    notes.push(`⚠️ ${fmtNum(state.tierConflicts.length)} Tier conflict${state.tierConflicts.length > 1 ? 's' : ''} between GT and DMS (DMS value used)`);
-  }
-  if (state.gtOrphans?.length) {
-    notes.push(`⚠️ ${fmtNum(state.gtOrphans.length)} GT promo${state.gtOrphans.length > 1 ? 's' : ''} not in DMS yet`);
   }
   if (notes.length) {
     noteEl.innerHTML = notes.join('<br>');
@@ -3026,80 +2925,48 @@ const dmsState = {
   rows: [],
   sortKey: 'code',
   sortDir: 'asc',
-  filters: { tier: [], group: [], channel: [], type: [], status: [] },
+  filters: { tier: [], group: [], mechanic: [], type: [], status: [] },
   search: '',
 };
 
-// Build the full DMS row set once (respects Active filter at render time)
+// Build the full DMS row set (respects Active filter at render time)
 function buildDMSRows() {
   const rows = [];
   for (const r of state.info) {
     const code = String(r['Promotion Code']).trim();
     if (!code) continue;
-    const g = getGT(code);
     const pc = parsePromoCode(code);
     const sl = deriveSalesLevelAndCode(code);
+    const fc = focSummary(code);
     const excl = state.excl.filter(x => String(x['Promotion Code']).trim() === code);
     const exclCodes = [...new Set(excl.map(x => String(x['Excluded Product Code']).trim()))].sort();
-    const csvTier = csvTierToLabel(r['Category']);
-    const conflict = !!(g?.gtTier && csvTier && g.gtTier !== csvTier);
 
     rows.push({
-      year: g?.year || pc.year,
-      month: g?.month || pc.month,
-      typeCode: g?.typeCode || pc.type,
-      running: g?.runningNo || pc.running,
-      channel: g?.channel || '',
+      year: pc.year,
+      month: pc.month,
+      typeCode: pc.type,                       // D / F / P from the promo code
+      running: pc.running,
       code,
       desc: r['Promotion Description'] || '',
       start: r['Promotion Start Date'] || '',
       end: r['Promotion End Date'] || '',
-      tier: csvTier,                      // DMS = source of truth
-      tierGT: g?.gtTier || '',
-      tierConflict: conflict,
-      group: g?.group || '',
-      maxCount: g?.maxCount || (String(r['MAX_COUNT_FLAG']) === '1' ? 'Y' : ''),
-      promoDetail: derivePromotionDetail(code),
-      shopType: deriveShopTypeSystem(code),   // Q2(a): always from PROMO_ASSIGNMENT
-      keyAccount: g?.keyAccount || '',
+      tier: csvTierToLabel(r['Category']),     // CSV Category
+      group: promoGroup(code),                 // CSV PROMO_GROUP
+      mechanic: promoMechanic(code),           // from PROMO_DETAIL
+      maxCount: maxCountOf(r),                 // CSV MAX_COUNT
+      promoDetail: promoDetailText(code),      // "6 EA get 3.55%"
+      shopType: deriveShopType(code),          // PROMO_ASSIGNMENT hierarchy 3 (replaces Channel)
+      keyAccount: '',                          // not available in any source
       salesLevel: sl.level,
       salesCode: sl.codes,
-      focLevel: g?.focSetBy || '',
-      focCode: g?.foc || '',
+      focLevel: fc.level,                      // from PROMO_DETAIL
+      focCode: fc.codes,                       // from PROMO_DETAIL
       exclusionYN: exclCodes.length > 0 ? 'Y' : 'N',
       exclusionCode: exclCodes.join(', '),
       status: r['Status'] || '',
-      notInDMS: false,
     });
   }
-
-  // GT orphans (in GT but not in PROMO_INFO)
-  for (const oc of (state.gtOrphans || [])) {
-    const g = getGT(oc);
-    if (!g) continue;
-    const pc = parsePromoCode(oc);
-    rows.push({
-      year: g.year || pc.year, month: g.month || pc.month,
-      typeCode: g.typeCode || pc.type, running: g.runningNo || pc.running,
-      channel: g.channel || '', code: oc, desc: '', start: '', end: '',
-      tier: '', tierGT: g.gtTier || '', tierConflict: false,
-      group: g.group || '', maxCount: g.maxCount || '', promoDetail: '',
-      shopType: g.shopType || '', keyAccount: g.keyAccount || '',
-      salesLevel: g.salesSetBy || '', salesCode: g.sales || '',
-      focLevel: g.focSetBy || '', focCode: g.foc || '',
-      exclusionYN: g.exclude || '', exclusionCode: '',
-      status: g.gtStatus || '', notInDMS: true,
-    });
-  }
-
   dmsState.rows = rows;
-}
-
-// Shop Type from the system (PROMO_ASSIGNMENT Hierarchy 3) — Q2(a)
-function deriveShopTypeSystem(promoCode) {
-  const a = state.promoAssignments?.get(promoCode);
-  if (!a) return '';
-  return Array.from(a.channels).sort().join(', ');
 }
 
 function populateDMSFilters() {
@@ -3111,7 +2978,7 @@ function populateDMSFilters() {
   };
   fill('dmsFTier', uniq('tier'));
   fill('dmsFGroup', uniq('group'));
-  fill('dmsFChannel', uniq('channel'));
+  fill('dmsFChannel', uniq('mechanic'));
   fill('dmsFType', uniq('typeCode'));
   fill('dmsFStatus', uniq('status'));
 }
@@ -3119,7 +2986,7 @@ function populateDMSFilters() {
 function readDMSFilters() {
   const get = (id) => Array.from(document.getElementById(id).selectedOptions).map(o => o.value);
   dmsState.filters = {
-    tier: get('dmsFTier'), group: get('dmsFGroup'), channel: get('dmsFChannel'),
+    tier: get('dmsFTier'), group: get('dmsFGroup'), mechanic: get('dmsFChannel'),
     type: get('dmsFType'), status: get('dmsFStatus'),
   };
   dmsState.search = document.getElementById('dmsSearch').value.toLowerCase().trim();
@@ -3129,10 +2996,10 @@ function getFilteredDMSRows() {
   const f = dmsState.filters;
   const q = dmsState.search;
   return dmsState.rows.filter(r => {
-    if (!isActivePromo(r.code) && !r.notInDMS) return false;   // respect global Active filter
+    if (!isActivePromo(r.code)) return false;   // respect global Active filter
     if (f.tier.length && !f.tier.includes(r.tier)) return false;
     if (f.group.length && !f.group.includes(r.group)) return false;
-    if (f.channel.length && !f.channel.includes(r.channel)) return false;
+    if (f.mechanic.length && !f.mechanic.includes(r.mechanic)) return false;
     if (f.type.length && !f.type.includes(r.typeCode)) return false;
     if (f.status.length && !f.status.includes(r.status)) return false;
     if (q && !(r.code.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q))) return false;
@@ -3147,30 +3014,24 @@ function renderDMSTable() {
   document.getElementById('dmsCount').textContent = fmtNum(rows.length);
   document.getElementById('dmsTotal').textContent = fmtNum(dmsState.rows.length);
 
-  // Notes
-  const conflicts = rows.filter(r => r.tierConflict).length;
-  const orphans = rows.filter(r => r.notInDMS).length;
+  const noDetail = rows.filter(r => !r.promoDetail).length;
   const notes = [];
-  if (!state.gt) notes.push('<span class="text-slate-400">📗 GT file not loaded — Group / Channel / FOC columns will be blank</span>');
-  if (conflicts) notes.push(`<span class="text-amber-700">🟡 ${fmtNum(conflicts)} Tier conflict${conflicts > 1 ? 's' : ''} — DMS value shown, GT value in tooltip</span>`);
-  if (orphans) notes.push(`<span class="text-emerald-700">🟢 ${fmtNum(orphans)} promo${orphans > 1 ? 's' : ''} in GT but not in DMS yet</span>`);
+  if (noDetail) notes.push(`<span class="text-amber-700">\u26a0\ufe0f ${fmtNum(noDetail)} promo${noDetail > 1 ? 's have' : ' has'} no rows in PROMO_DETAIL (mechanic unknown)</span>`);
+  notes.push('<span class="text-slate-400">Key Account Group is not available in any source file \u2014 left blank</span>');
   document.getElementById('dmsNotes').innerHTML = notes.join('<br>');
 
   const dir = dmsState.sortDir === 'asc' ? 1 : -1;
-  rows.sort((a, b) => {
-    const av = a[dmsState.sortKey] ?? '', bv = b[dmsState.sortKey] ?? '';
-    return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir;
-  });
+  rows.sort((a, b) => String(a[dmsState.sortKey] ?? '').localeCompare(String(b[dmsState.sortKey] ?? ''), undefined, { numeric: true }) * dir);
 
-  const si = (k) => dmsState.sortKey === k ? (dmsState.sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+  const si = (k) => dmsState.sortKey === k ? (dmsState.sortDir === 'asc' ? ' \u25b2' : ' \u25bc') : '';
   const cols = [
-    ['year', 'Year'], ['month', 'Month'], ['typeCode', 'Type'], ['running', 'Run No.'],
-    ['channel', 'Channel'], ['code', 'Promo Code'], ['desc', 'Description'],
-    ['start', 'Start'], ['end', 'End'], ['tier', 'Tier'], ['group', 'Group'],
-    ['maxCount', 'Max Count'], ['promoDetail', 'Promo Detail'], ['shopType', 'Shop Type'],
-    ['keyAccount', 'Key Account'], ['salesLevel', 'Sales Level'], ['salesCode', 'Sales Code'],
-    ['focLevel', 'FOC Level'], ['focCode', 'FOC Code'],
-    ['exclusionYN', 'Excl'], ['exclusionCode', 'Exclusion Code'],
+    ['year','Year'], ['month','Month'], ['typeCode','Type'], ['running','Run No.'],
+    ['code','Promo Code'], ['desc','Description'], ['start','Start'], ['end','End'],
+    ['tier','Tier'], ['group','Group'], ['mechanic','Mechanic'], ['maxCount','Max Count'],
+    ['promoDetail','Promotion Detail'], ['shopType','Shop Type'], ['keyAccount','Key Account'],
+    ['salesLevel','Sales Level'], ['salesCode','Sales Code'],
+    ['focLevel','FOC Level'], ['focCode','FOC Code'],
+    ['exclusionYN','Excl'], ['exclusionCode','Exclusion Code'],
   ];
 
   const el = document.getElementById('dmsResults');
@@ -3188,34 +3049,34 @@ function renderDMSTable() {
           ).join('')}
         </tr></thead>
         <tbody>
-          ${rows.map(r => `<tr class="dms-row cursor-pointer ${r.notInDMS ? 'bg-emerald-50' : ''}" data-code="${esc(r.code)}">
+          ${rows.map(r => `<tr class="dms-row cursor-pointer" data-code="${esc(r.code)}">
             <td class="px-2 py-1.5">${esc(r.year)}</td>
             <td class="px-2 py-1.5">${esc(r.month)}</td>
-            <td class="px-2 py-1.5 text-center">${esc(r.typeCode)}</td>
+            <td class="px-2 py-1.5 text-center font-semibold">${esc(r.typeCode)}</td>
             <td class="px-2 py-1.5">${esc(r.running)}</td>
-            <td class="px-2 py-1.5 whitespace-nowrap">${esc(r.channel || '—')}</td>
-            <td class="px-2 py-1.5 font-mono font-semibold text-slate-900 whitespace-nowrap">${esc(r.code)}${r.notInDMS ? ' <span class="text-emerald-700" title="In GT but not in DMS">🟢</span>' : ''}</td>
+            <td class="px-2 py-1.5 font-mono font-semibold text-slate-900 whitespace-nowrap">${esc(r.code)}</td>
             <td class="px-2 py-1.5 min-w-[200px]">${esc(r.desc)}</td>
             <td class="px-2 py-1.5 whitespace-nowrap">${esc(r.start)}</td>
             <td class="px-2 py-1.5 whitespace-nowrap">${esc(r.end)}</td>
-            <td class="px-2 py-1.5 text-center ${r.tierConflict ? 'bg-amber-100 font-semibold text-amber-900' : ''}" ${r.tierConflict ? `title="GT says: ${esc(r.tierGT)} — DMS value shown"` : ''}>${esc(r.tier || '—')}${r.tierConflict ? ' ⚠️' : ''}</td>
-            <td class="px-2 py-1.5 text-center font-mono">${esc(r.group || '—')}</td>
-            <td class="px-2 py-1.5">${esc(r.maxCount || '—')}</td>
-            <td class="px-2 py-1.5 whitespace-pre-line min-w-[110px]">${esc(r.promoDetail || '—')}</td>
-            <td class="px-2 py-1.5 min-w-[180px]">${esc(r.shopType || '—')}</td>
-            <td class="px-2 py-1.5">${esc(r.keyAccount || '—')}</td>
-            <td class="px-2 py-1.5 whitespace-nowrap">${esc(r.salesLevel || '—')}</td>
-            <td class="px-2 py-1.5 font-mono whitespace-pre-line min-w-[150px]">${esc(r.salesCode || '—')}</td>
-            <td class="px-2 py-1.5">${esc(r.focLevel || '—')}</td>
-            <td class="px-2 py-1.5 font-mono">${esc(r.focCode || '—')}</td>
+            <td class="px-2 py-1.5 text-center">${esc(r.tier || '\u2014')}</td>
+            <td class="px-2 py-1.5 text-center font-mono">${esc(r.group || '\u2014')}</td>
+            <td class="px-2 py-1.5 whitespace-nowrap">${esc(r.mechanic || '\u2014')}</td>
+            <td class="px-2 py-1.5 text-center">${esc(r.maxCount)}</td>
+            <td class="px-2 py-1.5 whitespace-pre-line min-w-[130px] font-medium">${esc(r.promoDetail || '\u2014')}</td>
+            <td class="px-2 py-1.5 min-w-[180px]">${esc(r.shopType || '\u2014')}</td>
+            <td class="px-2 py-1.5 text-slate-300">\u2014</td>
+            <td class="px-2 py-1.5 whitespace-nowrap">${esc(r.salesLevel || '\u2014')}</td>
+            <td class="px-2 py-1.5 font-mono whitespace-pre-line min-w-[150px]">${esc(r.salesCode || '\u2014')}</td>
+            <td class="px-2 py-1.5 whitespace-nowrap">${esc(r.focLevel || '\u2014')}</td>
+            <td class="px-2 py-1.5 font-mono whitespace-pre-line min-w-[110px]">${esc(r.focCode || '\u2014')}</td>
             <td class="px-2 py-1.5 text-center">${esc(r.exclusionYN)}</td>
-            <td class="px-2 py-1.5 font-mono min-w-[130px]">${esc(r.exclusionCode || '—')}</td>
+            <td class="px-2 py-1.5 font-mono min-w-[130px]">${esc(r.exclusionCode || '\u2014')}</td>
           </tr>`).join('')}
         </tbody>
       </table>
     </div>
   </div>
-  <p class="text-xs text-slate-400 italic mt-2">💡 Click any row to open it in Promo Lookup · 🟡 amber = Tier conflict (GT ≠ DMS) · 🟢 green = in GT but not in DMS</p>`;
+  <p class="text-xs text-slate-400 italic mt-2">\ud83d\udca1 Click any row to open it in Promo Lookup \u00b7 Type: D=Discount, F=FOC, P=Premium \u00b7 all values from the DMS system</p>`;
 
   el.querySelectorAll('.dms-sort').forEach(th => {
     th.addEventListener('click', () => {
@@ -3243,18 +3104,18 @@ async function exportDMSView() {
   await new Promise(r => setTimeout(r, 50));
   try {
     const wb = new ExcelJS.Workbook();
-    const NAVY = 'FF1E293B', AMBER = 'FFFEF3C7', GREEN = 'FFD1FAE5';
+    const NAVY = 'FF1E293B';
     const ws = wb.addWorksheet('DMS Table', { views: [{ state: 'frozen', ySplit: 3 }] });
 
-    const headers = ['Year','Month','Type\n(D/ F/ P)','Running No.','Channel','Promo Code',
-      'Promo Description (THA)','Start\nDate','End\nDate','Tier','Group','Max\nCount',
+    const headers = ['Year','Month','Type\n(D/ F/ P)','Running No.','Promo Code',
+      'Promo Description (THA)','Start\nDate','End\nDate','Tier','Group','Mechanic','Max\nCount',
       'Promotion Detail','Shop\nType','Key Account Group','Sales\nLevel','Sales\nCode',
       'FOC\nLevel','FOC Code','Exclusion\n(Y/ N)','Exclusion\nCode'];
-    const widths = [7,8,10,12,12,14,45,12,12,9,9,10,22,30,18,12,30,12,18,11,30];
+    const widths = [7,8,10,12,14,45,12,12,9,9,14,10,24,30,18,14,30,14,20,11,30];
     ws.columns = widths.map(w => ({ width: w }));
 
     const t = ws.getCell('A1');
-    t.value = `DMS Table — ${rows.length} promos`;
+    t.value = `DMS Table \u2014 ${rows.length} promos`;
     t.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Arial' };
     t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
     t.alignment = { vertical: 'middle', indent: 1 };
@@ -3262,16 +3123,17 @@ async function exportDMSView() {
     ws.getRow(1).height = 26;
 
     const f = dmsState.filters;
-    const fbits = [];
-    if (f.tier.length) fbits.push(`Tier: ${f.tier.join(', ')}`);
-    if (f.group.length) fbits.push(`Group: ${f.group.join(', ')}`);
-    if (f.channel.length) fbits.push(`Channel: ${f.channel.join(', ')}`);
-    if (f.type.length) fbits.push(`Type: ${f.type.join(', ')}`);
-    if (f.status.length) fbits.push(`Status: ${f.status.join(', ')}`);
-    if (dmsState.search) fbits.push(`Search: "${dmsState.search}"`);
-    ws.getCell('A2').value = (fbits.length ? fbits.join(' · ') : 'No filters') +
-      ` · ${filterState.activePromo ? 'Active only' : 'All promos'} · Tier source: DMS (PROMO_INFO)` +
-      ` · Generated: ${new Date().toLocaleString()}`;
+    const bits = [];
+    if (f.tier.length) bits.push(`Tier: ${f.tier.join(', ')}`);
+    if (f.group.length) bits.push(`Group: ${f.group.join(', ')}`);
+    if (f.mechanic.length) bits.push(`Mechanic: ${f.mechanic.join(', ')}`);
+    if (f.type.length) bits.push(`Type: ${f.type.join(', ')}`);
+    if (f.status.length) bits.push(`Status: ${f.status.join(', ')}`);
+    if (dmsState.search) bits.push(`Search: "${dmsState.search}"`);
+    ws.getCell('A2').value = (bits.length ? bits.join(' \u00b7 ') : 'No filters') +
+      ` \u00b7 ${filterState.activePromo ? 'Active only' : 'All promos'}` +
+      ` \u00b7 All values from the DMS system (PROMO_INFO / PROMO_DETAIL / PRODASSIGN / PROMO_ASSIGNMENT)` +
+      ` \u00b7 Generated: ${new Date().toLocaleString()}`;
     ws.getCell('A2').font = { italic: true, size: 9, color: { argb: 'FF64748B' }, name: 'Arial' };
     ws.mergeCells(2, 1, 2, headers.length);
 
@@ -3286,8 +3148,8 @@ async function exportDMSView() {
 
     let r = 4;
     for (const row of rows) {
-      const vals = [row.year, row.month, row.typeCode, row.running, row.channel, row.code,
-        row.desc, row.start, row.end, row.tier, row.group, row.maxCount,
+      const vals = [row.year, row.month, row.typeCode, row.running, row.code,
+        row.desc, row.start, row.end, row.tier, row.group, row.mechanic, row.maxCount,
         row.promoDetail, row.shopType, row.keyAccount, row.salesLevel, row.salesCode,
         row.focLevel, row.focCode, row.exclusionYN, row.exclusionCode];
       vals.forEach((v, i) => {
@@ -3296,17 +3158,7 @@ async function exportDMSView() {
         c.font = { size: 10, name: 'Arial' };
         c.alignment = { vertical: 'top', wrapText: true };
       });
-      ws.getCell(r, 6).font = { name: 'Consolas', size: 10, bold: true };
-      if (row.tierConflict) {
-        ws.getCell(r, 10).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBER } };
-        ws.getCell(r, 10).note = `GT file says "${row.tierGT}" — DMS value used`;
-      }
-      if (row.notInDMS) {
-        for (let c = 1; c <= headers.length; c++) {
-          ws.getCell(r, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN } };
-        }
-        ws.getCell(r, 6).note = 'In GT file but not in DMS (PROMO_INFO) yet';
-      }
+      ws.getCell(r, 5).font = { name: 'Consolas', size: 10, bold: true };
       r++;
     }
     ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: r - 1, column: headers.length } };
@@ -3318,7 +3170,7 @@ async function exportDMSView() {
     const ts = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     a.href = url; a.download = `DMS_Table_${ts}.xlsx`; a.click();
     URL.revokeObjectURL(url);
-    Swal.fire({ icon: 'success', title: 'Exported', html: `<div class="text-sm text-slate-600">${rows.length} promos · 21 columns</div>`,
+    Swal.fire({ icon: 'success', title: 'Exported', html: `<div class="text-sm text-slate-600">${rows.length} promos \u00b7 21 columns</div>`,
       timer: 2200, timerProgressBar: true, showConfirmButton: false });
   } catch (err) {
     console.error(err);
@@ -3355,6 +3207,7 @@ function renderHelp() {
       <li><b>${fmtNum(state.assign.length)}</b> product-assignment lines (PROMO_PRDASSIGN)</li>
       <li><b>${fmtNum(state.excl.length)}</b> exclusion lines (PROMO_PRDEXCLUDED)</li>
       <li><b>${fmtNum(state.custAssign.length)}</b> customer/channel assignment lines (PROMO_ASSIGNMENT)</li>
+      <li><b>${fmtNum(state.detail.length)}</b> detail rows — discount / FOC (PROMO_DETAIL)</li>
       <li><b>${fmtNum(state.expanded.length)}</b> eligible (Promo × SKU) pairs after expansion + exclusion</li>
       <li>Data loaded: <b>${state.dataLoadedAt ? new Date(state.dataLoadedAt).toLocaleString() : '—'}</b></li>
     </ul>` : '';
@@ -3363,10 +3216,11 @@ function renderHelp() {
     {
       id: 'gettingStarted', icon: '🚀', title: 'A. Getting Started',
       content: `
-        <p class="mb-3">Upload <b>5 required CSV files</b> (UTF-16 tab-separated, auto-detected by filename):</p>
+        <p class="mb-3">Upload <b>6 required CSV files</b> (UTF-16 tab-separated, auto-detected by filename):</p>
         <ol class="list-decimal list-inside space-y-1 mb-4 text-slate-600">
-          <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_INFO.csv</code> — Master โปรทั้งหมด</li>
-          <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_PRDASSIGN.csv</code> — สินค้าที่โปรครอบคลุม</li>
+          <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_INFO.csv</code> — Master โปรทั้งหมด (Tier, Group, Status)</li>
+          <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_DETAIL.csv</code> — <b>กลไกโปร</b>: ซื้อเท่าไหร่ → ได้ส่วนลด / ของแถม</li>
+          <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_PRDASSIGN.csv</code> — สินค้าที่โปรครอบคลุม (ฝั่งซื้อ)</li>
           <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_PRDEXCLUDED.csv</code> — สินค้าที่ถูกยกเว้น</li>
           <li><code class="text-xs bg-slate-100 px-1 rounded">PRODUCT_INFO.csv</code> — Master สินค้า</li>
           <li><code class="text-xs bg-slate-100 px-1 rounded">PROMO_ASSIGNMENT.csv</code> — Assignment ให้ Channel/Distributor/Customer</li>
@@ -3462,8 +3316,28 @@ function renderHelp() {
             </ul>
           </div>
           <div>
+            <div class="font-semibold text-slate-800 mb-2">PROMO_DETAIL — กลไกโปร (GET side)</div>
+            <ul class="list-disc list-inside space-y-1 text-slate-600 text-sm">
+              <li><code>Promotion Type = 1</code> → <b>FOC</b> (แถมสินค้า) — ดู <code>Prodcat Code</code> + <code>TTL_FOC_QTY</code></li>
+              <li><code>Promotion Type = 2</code> → <b>ส่วนลดเป็นบาท</b> — ดู <code>Discount</code></li>
+              <li><code>Promotion Type = 3</code> → <b>ส่วนลดเป็น %</b> — ดู <code>Discount</code></li>
+              <li><code>Total Buy</code> = ต้องซื้อเท่าไหร่ · UOM มาจาก <code>PROMO_INFO.Buy UOM</code></li>
+              <li>FOC Prodcat expand เป็น SKU ด้วยกฎเดียวกันกับฝั่งซื้อ (Level 7 = Product Code)</li>
+            </ul>
+          </div>
+          <div>
+            <div class="font-semibold text-slate-800 mb-2">Tier / Group — ใช้ CSV เป็นหลัก</div>
+            <ul class="list-disc list-inside space-y-1 text-slate-600 text-sm">
+              <li><b>Tier</b> = <code>PROMO_INFO.Category</code> (TIER1–TIER6)</li>
+              <li><b>Group</b> = <code>PROMO_INFO.PROMO_GROUP</code> (GR01 → G1)</li>
+              <li><b>Shop Type</b> = <code>PROMO_ASSIGNMENT</code> Hierarchy 3</li>
+              <li><b>Max Count</b> = <code>PROMO_INFO.MAX_COUNT</code> (ตัวเลขจริง)</li>
+              <li class="text-amber-700"><b>Key Account Group</b> — ไม่มีในไฟล์ไหนเลย → เว้นว่าง</li>
+            </ul>
+          </div>
+          <div>
             <div class="font-semibold text-slate-800 mb-2">Scheme Flags</div>
-            <p class="text-sm text-slate-600">รวม field ที่ = 1 จาก 10 SCHEME columns ใน PROMO_INFO (MRP, TDR, QPS, Prorata, Range, Combi, Dynamic, Basic Disc, FOC Recurring, Max Count)</p>
+            <p class="text-sm text-slate-600">แสดงเฉพาะ flag ที่มีค่าจริงในข้อมูล: Prorata, Disc Method, FOC Recurring, Max Count, For Every — (MRP/TDR/QPS/Range/Combi เป็น 0 ทั้งไฟล์ จึงตัดออก)</p>
           </div>
           <div>
             <div class="font-semibold text-slate-800 mb-2">Active Promo (Strict)</div>
@@ -3561,11 +3435,11 @@ async function tryRestore() {
     const saved = await idbGet('raw');
     if (!saved || !saved.info) return false;
 
-    // Backward compat: reject old saved data missing custAssign
-    if (!saved.custAssign) {
+    // Backward compat: old saves lack PROMO_DETAIL
+    if (!saved.custAssign || !saved.detail) {
       await idbClear();
       Swal.fire({ icon: 'info', title: 'Data format updated',
-        text: 'Previous saved data is no longer compatible (5th file required). Please upload all 5 files.',
+        text: 'Saved data is out of date (PROMO_DETAIL is now required). Please upload all 6 CSV files.',
         confirmButtonColor: '#1e293b' });
       return false;
     }
@@ -3581,8 +3455,8 @@ async function tryRestore() {
     if (result.isConfirmed) {
       Swal.fire({ title: 'Restoring...', allowOutsideClick: false, didOpen: () => Swal.showLoading(), showConfirmButton: false });
       state.info = saved.info; state.assign = saved.assign; state.excl = saved.excl;
+      state.detail = saved.detail;
       state.product = saved.product; state.custAssign = saved.custAssign;
-      state.gt = saved.gt || null;
       state.dataLoadedAt = saved.savedAt;
       buildIndexes();
       Swal.close();
@@ -3638,7 +3512,6 @@ document.querySelectorAll('.export-opt').forEach(btn => {
     menu.classList.add('hidden');
     const mode = btn.dataset.mode;
     if (mode === 'light') exportExcel(false);
-    else if (mode === 'dms') exportDMSFormat();
     else if (mode === 'selected-promo') openSelectModal('promo');
     else if (mode === 'selected-product') openSelectModal('product');
   });
